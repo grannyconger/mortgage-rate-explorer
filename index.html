@@ -6,14 +6,21 @@
 <title>Mortgage Rate Explorer</title>
 <meta name="description" content="Explore 55 years of U.S. mortgage rates. A beginner-friendly data visualization tool built on Freddie Mac's weekly survey.">
 <link rel="stylesheet" href="styles.css">
+<!-- Loaded for the Zen theme only (styles.css switches to it there): Atkinson
+     Hyperlegible is an open-source typeface designed by the Braille Institute
+     specifically to stay legible for low-vision readers, and it holds up well
+     for dyslexia too. Everywhere else on the page keeps the system font. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%A0%3C/text%3E%3C/svg%3E">
 </head>
 <body>
 
 <!-- ============================================================
-     HEADER: title on the left. On the right: a small "Tour"
-     restart button, the light/dark/auto theme switch, and the
-     Full Screen button (kept right-most, as asked).
+     HEADER: title on the left. On the right: a small sparkly
+     "Tour" restart button, the light/dark/zen theme switch, and
+     the Full Screen button (kept right-most, as asked).
      ============================================================ -->
 <header class="topbar">
   <div class="topbar-inner">
@@ -26,12 +33,12 @@
     </div>
 
     <div class="topbar-actions">
-      <button id="tourBtn" class="btn btn-accent" type="button">Take the Tour</button>
+      <button id="tourBtn" class="btn btn-accent sparkle" type="button"><span class="spark" aria-hidden="true">&#10024;</span> Take the Tour</button>
 
       <div class="segmented" role="group" aria-label="Color theme">
         <button type="button" class="seg-btn" data-theme-choice="light" title="Light theme"><span aria-hidden="true">&#9728;</span><span class="seg-label">Light</span></button>
         <button type="button" class="seg-btn" data-theme-choice="dark" title="Dark theme"><span aria-hidden="true">&#9790;</span><span class="seg-label">Dark</span></button>
-        <button type="button" class="seg-btn" data-theme-choice="system" title="Match my device"><span aria-hidden="true">&#9680;</span><span class="seg-label">Auto</span></button>
+        <button type="button" class="seg-btn" data-theme-choice="zen" title="Zen theme - calmer colors and type, easier on the eyes"><span aria-hidden="true">&#127807;</span><span class="seg-label">Zen</span></button>
       </div>
 
       <button id="fullscreenBtn" class="btn btn-ghost btn-fullscreen" type="button" data-tip="Hide your browser's toolbar so the tool fills the whole screen. Press it again (or Esc) to go back.">
@@ -42,11 +49,42 @@
 </header>
 
 <!-- ============================================================
-     FILTERS BAR: labeled "0 · Controls" - a neutral badge, not a
-     bright one, because this is a tool you use on every tab, not
-     a chapter of its own. It stays visible no matter which tab
-     you're reading, because it scopes every one of them.
+     APP LAYOUT: a left-hand sidebar holding the six numbered tabs,
+     and a main column holding the filters bar (0 · Controls) plus
+     whichever tab's content is open. Keeping the tabs off to the
+     side, instead of stacked below the controls, keeps the top of
+     the page from feeling like two crowded toolbars in a row.
      ============================================================ -->
+<div class="applayout">
+
+<!-- ============================================================
+     TABS: the six chapters of the tool. Each one has a number,
+     a color, and a plain-English name, and that same number and
+     color follow you into the panel below when you open it.
+     ============================================================ -->
+<nav class="sidebar" role="tablist" aria-label="Sections" aria-orientation="vertical" id="tabsBar">
+  <button class="tabbtn tab-1" role="tab" id="tab-start" data-tab="start" aria-controls="panel-start" aria-selected="true" type="button">
+    <span class="tab-num">1</span><span class="tab-icon" aria-hidden="true">&#128075;</span><span class="tab-name">Start Here</span>
+  </button>
+  <button class="tabbtn tab-2" role="tab" id="tab-graph" data-tab="graph" aria-controls="panel-graph" aria-selected="false" type="button">
+    <span class="tab-num">2</span><span class="tab-icon" aria-hidden="true">&#128200;</span><span class="tab-name">Graph</span>
+  </button>
+  <button class="tabbtn tab-3" role="tab" id="tab-stats" data-tab="stats" aria-controls="panel-stats" aria-selected="false" type="button">
+    <span class="tab-num">3</span><span class="tab-icon" aria-hidden="true">&#128202;</span><span class="tab-name">Stats</span>
+  </button>
+  <button class="tabbtn tab-4" role="tab" id="tab-history" data-tab="history" aria-controls="panel-history" aria-selected="false" type="button">
+    <span class="tab-num">4</span><span class="tab-icon" aria-hidden="true">&#128337;</span><span class="tab-name">History</span>
+  </button>
+  <button class="tabbtn tab-5" role="tab" id="tab-calculator" data-tab="calculator" aria-controls="panel-calculator" aria-selected="false" type="button">
+    <span class="tab-num">5</span><span class="tab-icon" aria-hidden="true">&#129518;</span><span class="tab-name">Calculator</span>
+  </button>
+  <button class="tabbtn tab-6" role="tab" id="tab-glossary" data-tab="glossary" aria-controls="panel-glossary" aria-selected="false" type="button">
+    <span class="tab-num">6</span><span class="tab-icon" aria-hidden="true">&#128218;</span><span class="tab-name">Word Bank</span>
+  </button>
+</nav>
+
+<div class="maincol">
+
 <section class="filtersbar" id="filtersBar" aria-label="Filters">
   <div class="section-badge badge-neutral">
     <span class="badge-num">0</span><span class="badge-title">Controls</span>
@@ -123,32 +161,6 @@
   </div>
 </section>
 
-<!-- ============================================================
-     TABS: the six chapters of the tool. Each one has a number,
-     a color, and a plain-English name, and that same number and
-     color follow you into the panel below when you open it.
-     ============================================================ -->
-<nav class="tabsbar" role="tablist" aria-label="Sections" id="tabsBar">
-  <button class="tabbtn tab-1" role="tab" id="tab-start" data-tab="start" aria-controls="panel-start" aria-selected="true" type="button">
-    <span class="tab-num">1</span><span class="tab-icon" aria-hidden="true">&#128075;</span><span class="tab-name">Start Here</span>
-  </button>
-  <button class="tabbtn tab-2" role="tab" id="tab-graph" data-tab="graph" aria-controls="panel-graph" aria-selected="false" type="button">
-    <span class="tab-num">2</span><span class="tab-icon" aria-hidden="true">&#128200;</span><span class="tab-name">Graph</span>
-  </button>
-  <button class="tabbtn tab-3" role="tab" id="tab-stats" data-tab="stats" aria-controls="panel-stats" aria-selected="false" type="button">
-    <span class="tab-num">3</span><span class="tab-icon" aria-hidden="true">&#128202;</span><span class="tab-name">Stats</span>
-  </button>
-  <button class="tabbtn tab-4" role="tab" id="tab-history" data-tab="history" aria-controls="panel-history" aria-selected="false" type="button">
-    <span class="tab-num">4</span><span class="tab-icon" aria-hidden="true">&#128337;</span><span class="tab-name">History</span>
-  </button>
-  <button class="tabbtn tab-5" role="tab" id="tab-calculator" data-tab="calculator" aria-controls="panel-calculator" aria-selected="false" type="button">
-    <span class="tab-num">5</span><span class="tab-icon" aria-hidden="true">&#129518;</span><span class="tab-name">Calculator</span>
-  </button>
-  <button class="tabbtn tab-6" role="tab" id="tab-glossary" data-tab="glossary" aria-controls="panel-glossary" aria-selected="false" type="button">
-    <span class="tab-num">6</span><span class="tab-icon" aria-hidden="true">&#128218;</span><span class="tab-name">Word Bank</span>
-  </button>
-</nav>
-
 <main class="page">
 
   <!-- ============================================================
@@ -167,7 +179,7 @@
         <div class="qf"><div class="qf-num">3</div><div class="qf-label">kinds of home loans</div></div>
         <div class="qf"><div class="qf-num" id="qfYears">&ndash;</div><div class="qf-label">years, 1971&ndash;today</div></div>
       </div>
-      <button id="tourBtn2" class="btn btn-accent btn-big" type="button">&#10024; Take the 1-Minute Tour</button>
+      <button id="tourBtn2" class="btn btn-accent btn-big sparkle" type="button"><span class="spark" aria-hidden="true">&#10024;</span> Take the 1-Minute Tour</button>
     </div>
 
     <div class="card">
@@ -309,7 +321,7 @@
           </span>
           <span class="calc-input">
             <span class="prefix">$</span>
-            <input type="number" id="loanAmt" value="300000" min="10000" max="2000000" step="5000">
+            <input type="text" inputmode="numeric" id="loanAmt" value="300,000" aria-label="Amount borrowed, in dollars">
           </span>
         </label>
         <label class="calc-field calc-field--slider">
@@ -371,6 +383,9 @@
     <p class="footer-fine">Built as a learning tool. Nothing here is financial advice.</p>
   </footer>
 </main>
+
+</div><!-- /.maincol -->
+</div><!-- /.applayout -->
 
 <!-- Floating tooltip bubble, shared by every "?" button and every highlighted word -->
 <div class="tipbubble" id="tipbubble" role="tooltip" hidden></div>

@@ -15,6 +15,15 @@
      11. Theme switching, full screen, CSV download, tooltips, tour
    ========================================================================== */
 
+/* Always open at the top of the page. Some browsers try to restore your old
+   scroll position on a refresh, which looks broken on a tool built around
+   tabs - the sidebar and controls would be scrolled past before you even
+   see them. Turning off scroll restoration and forcing the scroll to 0
+   fixes both a fresh load AND the back/forward-cache case (pageshow). */
+if ("scrollRestoration" in history) { history.scrollRestoration = "manual"; }
+window.scrollTo(0, 0);
+window.addEventListener("pageshow", function () { window.scrollTo(0, 0); });
+
 /* == 1. SETTINGS ========================================================== */
 
 var SERIES = [
@@ -138,6 +147,9 @@ function bigMoney(v) {
   if (v >= 1000000) return "$" + (v / 1000000).toFixed(2) + "M";
   return money(v);
 }
+/* Whole-number thousands separator, no $ sign - used to auto-format the
+   "amount borrowed" box as you type (1000000 -> "1,000,000"). */
+function formatInt(n) { return Math.round(n).toLocaleString("en-US"); }
 
 function monthlyPayment(principal, annualRate, years) {
   var monthlyRate = annualRate / 100 / 12;
@@ -312,13 +324,27 @@ function setupControls() {
   $("resetBtn").addEventListener("click", resetAll);
   $("csvBtn").addEventListener("click", downloadCSV);
 
+  /* The "amount borrowed" box is a plain text field (not type="number") so
+     it can hold commas - "300,000" reads far easier than "300000" for
+     anyone still building number sense. We re-format it on every keystroke
+     rather than waiting for blur, and skip clamping the min/max while
+     typing so the field never fights someone mid-edit; the hard clamp
+     happens on blur instead. */
   $("loanAmt").addEventListener("input", function () {
+    var digits = this.value.replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
+    var num = digits ? parseInt(digits, 10) : 0;
+    this.value = digits ? formatInt(num) : "";
+    $("loanSlider").value = Math.min(1000000, Math.max(50000, num || 50000));
+    renderCalculator();
+  });
+  $("loanAmt").addEventListener("blur", function () {
     var v = clampLoan(this.value);
+    this.value = formatInt(v);
     $("loanSlider").value = Math.min(1000000, Math.max(50000, v));
     renderCalculator();
   });
   $("loanSlider").addEventListener("input", function () {
-    $("loanAmt").value = this.value;
+    $("loanAmt").value = formatInt(parseInt(this.value, 10));
     renderCalculator();
   });
   $("amortRateSelect").addEventListener("change", function () {
@@ -333,7 +359,8 @@ function setupControls() {
 }
 
 function clampLoan(raw) {
-  var v = parseFloat(raw);
+  var digits = String(raw).replace(/[^\d]/g, "");
+  var v = digits ? parseInt(digits, 10) : 0;
   if (isNaN(v) || v < 10000) v = 10000;
   if (v > 2000000) v = 2000000;
   return v;
@@ -384,7 +411,7 @@ function resetAll() {
   $("showEvents").checked = true;
   $("showTable").checked = false;
   $("tableCard").hidden = true;
-  $("loanAmt").value = 300000;
+  $("loanAmt").value = formatInt(300000);
   $("loanSlider").value = 300000;
   applyPreset("10");
 }

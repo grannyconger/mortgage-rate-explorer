@@ -8,17 +8,19 @@
    a teaching tool because nothing is ambiguous: buttons look like buttons.
 
    FILE MAP
-   1. Color tokens (3 themes: light / dark / auto)
+   1. Color tokens (3 themes: light / dark / zen)
    2. Page basics + neobrutalist building blocks (.nb-box, shadows)
-   3. Header, theme switch, full screen button
-   4. Filters bar
-   5. Tabs bar + panel banners (the numbered/colored sections)
-   6. Stat tiles
-   7. Cards and the chart
-   8. Table, insights, history, calculator, amortization
-   9. Glossary / Word Bank + hover-defined terms
-   10. Tooltips and the guided tour
-   11. Full-screen mode + small screens
+   3. Header, theme switch, full screen button, sparkle animation
+   4. App layout: left sidebar of tabs + main column
+   5. Filters bar
+   6. Panel banners (the numbered/colored sections)
+   7. Stat tiles
+   8. Cards and the chart
+   9. Table, insights, history, calculator, amortization
+   10. Glossary / Word Bank + hover-defined terms
+   11. Tooltips and the guided tour
+   12. The Zen theme's own overrides (calmer chrome + type)
+   13. Full-screen mode + small screens
    ========================================================================== */
 
 /* == 1. COLOR TOKENS ====================================================== */
@@ -35,8 +37,11 @@
   --grid: #E4DFCE;
   --axis: #B9B39F;
 
-  /* --ink is the neobrutalist border/shadow color - solid black on light. */
+  /* --ink is the neobrutalist border/shadow color - solid black on light.
+     --border-w is a single knob for how thick that border is everywhere -
+     the Zen theme turns it down instead of overriding dozens of rules. */
   --ink: #111111;
+  --border-w: 3px;
   --shadow-sm: 3px 3px 0 var(--ink);
   --shadow-md: 5px 5px 0 var(--ink);
   --shadow-lg: 8px 8px 0 var(--ink);
@@ -71,7 +76,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme="light"]):not([data-theme="zen"]) {
     color-scheme: dark;
     --page: #121210;
     --surface-1: #1C1B17;
@@ -148,20 +153,18 @@ kbd {
 }
 
 .page {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 20px 20px 64px;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  padding-bottom: 48px;
 }
 
 /* A "nb-box" is the base neobrutalist container: thick border, flat hard
    shadow, no blur, no transparency tricks. Everything boxy uses this. */
 .card, .tile, .filtersbar, .panel-banner, .tabbtn, .btn, .chip,
 .section-badge, .event, .calc-cell, .qf, details, .chart-card,
-input[type="date"], input[type="number"], select, .tour-box {
-  border: 3px solid var(--ink);
+input[type="date"], input[type="text"], select, .tour-box {
+  border: var(--border-w) solid var(--ink);
   border-radius: var(--radius);
 }
 
@@ -169,7 +172,7 @@ input[type="date"], input[type="number"], select, .tour-box {
 
 .topbar {
   background: var(--surface-1);
-  border-bottom: 3px solid var(--ink);
+  border-bottom: var(--border-w) solid var(--ink);
   padding: 4px 0;
 }
 .topbar-inner {
@@ -216,10 +219,27 @@ input[type="date"], input[type="number"], select, .tour-box {
 
 .btn-fullscreen[aria-pressed="true"] { background: var(--cta); color: var(--cta-ink); }
 
+/* The "Take the Tour" buttons pulse and their little sparkle spins, so a
+   first-time visitor's eye lands on them instead of having to read every
+   button to find the right one. Turned off automatically for anyone whose
+   OS asks for reduced motion (see the media query at the end of this file),
+   and turned off deliberately by the calmer Zen theme (section 12). */
+@keyframes sparkleGlow {
+  0%, 100% { box-shadow: var(--shadow-sm), 0 0 0 0 rgba(255, 212, 0, 0.55); }
+  50%      { box-shadow: var(--shadow-sm), 0 0 16px 5px rgba(255, 212, 0, 0.55); }
+}
+@keyframes sparkleTwinkle {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  50%      { transform: scale(1.35) rotate(18deg); opacity: 0.6; }
+}
+.btn.sparkle { animation: sparkleGlow 1.8s ease-in-out infinite; }
+.btn.sparkle:active { animation: none; }
+.btn.sparkle .spark { display: inline-block; animation: sparkleTwinkle 1.1s ease-in-out infinite; }
+
 /* Theme switch */
 .segmented {
   display: inline-flex;
-  border: 3px solid var(--ink);
+  border: var(--border-w) solid var(--ink);
   border-radius: var(--radius-sm);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
@@ -237,16 +257,49 @@ input[type="date"], input[type="number"], select, .tour-box {
   align-items: center;
   gap: 5px;
 }
-.seg-btn + .seg-btn { border-left: 3px solid var(--ink); }
+.seg-btn + .seg-btn { border-left: var(--border-w) solid var(--ink); }
 .seg-btn:hover { filter: brightness(0.97); }
 .seg-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 .seg-label { font-size: 0.78rem; }
 
-/* == 4. FILTERS BAR ======================================================== */
+/* == 4. APP LAYOUT: left sidebar of tabs + main column ===================== */
+
+/* Tabs live down the left edge instead of in a second toolbar row under the
+   controls, so the top of the page reads as ONE bar (Controls), not two
+   stacked ones. The sidebar stays put while the main column scrolls. */
+.applayout {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 20px 20px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+body.is-fullscreen .applayout { max-width: 1520px; }
+
+.sidebar {
+  flex: none;
+  width: 196px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: sticky;
+  top: 14px;
+}
+
+.maincol {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: 8px;
+}
+
+/* == 5. FILTERS BAR ========================================================= */
 
 .filtersbar {
-  max-width: 1280px;
-  margin: 20px auto 0;
+  width: 100%;
   background: var(--surface-1);
   box-shadow: var(--shadow-md);
   padding: 14px 18px;
@@ -327,7 +380,7 @@ input[type="date"], select, input[type="number"] {
 .swatch-2 { background: var(--series-2); }
 .swatch-3 { background: var(--series-3); }
 
-/* == 5. SECTION IDENTITY: badges, tabs, panel banners ===================== */
+/* == 6. SECTION IDENTITY: badges + panel banners =========================== */
 
 /* The little "0 · Controls" chip at the front of the filters bar. */
 .section-badge {
@@ -350,22 +403,16 @@ input[type="date"], select, input[type="number"] {
 .badge-title { font-weight: 800; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: #111; }
 .badge-neutral { background: var(--sec-0); }
 
-/* The tab bar: six chunky buttons. The ACTIVE tab looks physically pressed
-   in (shadow gone, box shifted) - that is the selection state, and it
-   doubles as a teaching moment about how the buttons elsewhere behave too. */
-.tabsbar {
-  max-width: 1280px;
-  margin: 14px auto 0;
-  padding: 0 20px;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
+/* The tabs: six chunky buttons stacked down the sidebar. The ACTIVE tab
+   looks physically pressed in (shadow gone, box shifted) - that is the
+   selection state, and it doubles as a teaching moment about how the
+   buttons elsewhere on the page behave too. */
 .tabbtn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 14px;
+  width: 100%;
+  padding: 10px 12px;
   font: inherit;
   font-weight: 800;
   font-size: 0.88rem;
@@ -426,7 +473,7 @@ input[type="date"], select, input[type="number"] {
 
 .tabpanel { display: flex; flex-direction: column; gap: 18px; }
 
-/* == 6. STAT TILES ========================================================= */
+/* == 7. STAT TILES ========================================================= */
 
 .tiles {
   display: grid;
@@ -459,7 +506,7 @@ input[type="date"], select, input[type="number"] {
 .up { color: var(--bad); }
 .down { color: var(--good); }
 
-/* == 7. CARDS AND CHART ==================================================== */
+/* == 8. CARDS AND CHART ==================================================== */
 
 .card {
   background: var(--surface-1);
@@ -526,7 +573,7 @@ input[type="date"], select, input[type="number"] {
   max-width: 230px;
 }
 
-/* == 8. TABLE / HISTORY / CALCULATOR / AMORTIZATION ======================= */
+/* == 9. TABLE / HISTORY / CALCULATOR / AMORTIZATION ======================= */
 
 .table-wrap { max-height: 420px; overflow: auto; border: 3px solid var(--ink); border-radius: var(--radius-sm); }
 table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
@@ -541,7 +588,7 @@ thead th {
   letter-spacing: 0.05em;
   color: var(--text-primary);
   font-weight: 800;
-  border-bottom: 3px solid var(--ink);
+  border-bottom: var(--border-w) solid var(--ink);
 }
 thead th:first-child, tbody td:first-child { text-align: left; }
 tbody td {
@@ -626,7 +673,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 
 .amort-select-wrap select { font-weight: 700; box-shadow: var(--shadow-sm); }
 
-/* == 9. GLOSSARY / WORD BANK + hover-defined terms ========================= */
+/* == 10. GLOSSARY / WORD BANK + hover-defined terms ========================= */
 
 .quickfacts { display: flex; gap: 14px; flex-wrap: wrap; margin: 16px 0; }
 .qf { flex: 1; min-width: 130px; padding: 12px 14px; background: var(--surface-2); box-shadow: var(--shadow-sm); text-align: center; }
@@ -681,7 +728,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .footer { color: var(--text-muted); font-size: 0.78rem; line-height: 1.6; padding-top: 6px; font-weight: 500; }
 .footer-fine { margin-top: 4px; opacity: 0.85; }
 
-/* == 10. TOOLTIPS AND TOUR ================================================= */
+/* == 11. TOOLTIPS AND TOUR ================================================= */
 
 .tip {
   width: 17px;
@@ -740,27 +787,126 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .tour-nav { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
 .tour-nav .spacer { flex: 1; }
 
-/* == 11. FULL-SCREEN MODE + SMALL SCREENS ================================== */
+/* == 12. THE ZEN THEME ====================================================== */
+
+/* Zen swaps every token the neobrutalist chrome reads from - so it is a
+   genuinely different feel, not just a recolor - and adds a few rules of
+   its own on top, aimed at anyone who finds hard edges, tight text, or
+   all-capitals hard going (that covers a lot of dyslexia and dysgraphia
+   guidance, and it just reads as "calmer" to everyone else too):
+     - soft lavender surfaces instead of stark cream/black-on-white
+     - thin, low-contrast borders and blurred shadows instead of hard
+       black offsets
+     - Atkinson Hyperlegible, a typeface built for low-vision readability,
+       at extra line-height and letter-spacing
+     - no ALL-CAPS labels (capitals are measurably slower to read)
+     - no pulsing "Take the Tour" button - Zen is the one theme where we
+       don't try to grab your eye
+   The data-series colors and the Word Bank highlight color are left as
+   theme variables too, so they inherit automatically - see section 1. */
+:root[data-theme="zen"] {
+  color-scheme: light;
+  --page: #F2EFFA;
+  --surface-1: #FCFBFF;
+  --surface-2: #EAE5F6;
+  --text-primary: #2E2B3D;
+  --text-secondary: #524C68;
+  --text-muted: #837CA0;
+  --grid: #E3DEF2;
+  --axis: #CBC3E4;
+
+  --ink: #C3BADC;
+  --border-w: 1.5px;
+  --shadow-sm: 0 2px 8px rgba(72, 61, 118, 0.12);
+  --shadow-md: 0 5px 18px rgba(72, 61, 118, 0.14);
+  --shadow-lg: 0 10px 30px rgba(72, 61, 118, 0.16);
+
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+
+  --good: #128A3E;
+  --bad: #D7263D;
+  --accent: #7367C6;
+  --accent-ink: #ffffff;
+  --cta: #F6CA6E;
+  --cta-ink: #2E2B3D;
+
+  --sec-0: #E3DEF2;
+  --sec-1: #FBE5A8;
+  --sec-2: #BCEBDA;
+  --sec-3: #FBD7AC;
+  --sec-4: #DCCCF3;
+  --sec-5: #C3DFF4;
+  --sec-6: #CBE9C6;
+  --hi-bg: #FBEFB8;
+
+  --radius: 18px;
+  --radius-sm: 12px;
+  --font: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* Extra breathing room in the type itself - not just the layout. */
+:root[data-theme="zen"] body { line-height: 1.8; letter-spacing: 0.01em; word-spacing: 0.05em; }
+:root[data-theme="zen"] .lede,
+:root[data-theme="zen"] .insights li,
+:root[data-theme="zen"] .event-text,
+:root[data-theme="zen"] .gloss-def,
+:root[data-theme="zen"] .calc-lesson,
+:root[data-theme="zen"] p { line-height: 1.75; }
+
+/* No shouting labels - swap every ALL-CAPS micro-label for normal case. */
+:root[data-theme="zen"] .control-label,
+:root[data-theme="zen"] .badge-title,
+:root[data-theme="zen"] .tile-label,
+:root[data-theme="zen"] .event-when,
+:root[data-theme="zen"] .calc-cap,
+:root[data-theme="zen"] .calc-cell-label,
+:root[data-theme="zen"] .qf-label,
+:root[data-theme="zen"] .tour-step,
+:root[data-theme="zen"] thead th {
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+
+/* Zen is the one theme that never tries to grab your eye. */
+:root[data-theme="zen"] .btn.sparkle { animation: none; box-shadow: var(--shadow-sm); }
+:root[data-theme="zen"] .btn.sparkle .spark { animation: none; }
+
+/* A softer dimming scrim behind the guided tour, to match. */
+:root[data-theme="zen"] .tour-spot { box-shadow: 0 0 0 9999px rgba(46, 43, 61, 0.35); }
+
+/* == 13. FULL-SCREEN MODE + SMALL SCREENS ================================== */
 
 /* This tool is built for desktop, and especially for full-screen desktop -
    the chart and tiles get a bit more room to breathe when you press the
-   Full Screen button, instead of staying capped at a laptop-friendly width. */
-body.is-fullscreen .page,
-body.is-fullscreen .filtersbar,
-body.is-fullscreen .tabsbar,
-body.is-fullscreen .topbar-inner {
-  max-width: 1520px;
-}
+   Full Screen button, instead of staying capped at a laptop-friendly width.
+   (.applayout's own full-screen widening is set alongside it, in section 4.) */
+body.is-fullscreen .topbar-inner { max-width: 1520px; }
 body.is-fullscreen .tile-value { font-size: 2.05rem; }
 body.is-fullscreen .card { padding: 22px; }
 
+/* Below desktop width the sidebar can't afford to sit beside the content,
+   so it becomes a horizontal scrolling strip above it instead - the same
+   chip-row layout the tabs used before they moved to the side. */
 @media (max-width: 900px) {
+  .applayout { flex-direction: column; padding: 16px 16px 0; }
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    position: static;
+    padding-bottom: 2px;
+  }
+  .tabbtn { width: auto; flex: none; }
   .tiles { grid-template-columns: repeat(2, 1fr); }
   .control-group--end { margin-left: 0; width: 100%; }
 }
 
 @media (max-width: 560px) {
-  .page { padding: 16px 16px 48px; }
+  .applayout { padding: 16px 16px 0; }
+  .maincol { padding-bottom: 32px; }
   .tiles { grid-template-columns: 1fr 1fr; }
   .tile-value { font-size: 1.5rem; }
   .seg-label { display: none; }
