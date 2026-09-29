@@ -1,109 +1,123 @@
 /* ==========================================================================
-   Mortgage Rate Explorer - stylesheet
+   Mortgage Rate Explorer - stylesheet (Neobrutalism edition)
    --------------------------------------------------------------------------
-   HOW THIS FILE IS ORGANISED
-   1. Color tokens (the theme system)
-   2. Page basics
-   3. Top bar
-   4. Controls row
-   5. Stat tiles
-   6. Cards and the chart
-   7. Table, insights, calculator, glossary
-   8. Tooltips and the guided tour
-   9. Small screens
+   WHAT "NEOBRUTALISM" MEANS HERE: thick black (or white, in dark mode)
+   borders around everything, flat hard-edged drop shadows with NO blur,
+   and buttons that visibly "press in" (shadow shrinks, box moves) when you
+   click them. It is a bold, high-contrast, very readable style - good for
+   a teaching tool because nothing is ambiguous: buttons look like buttons.
 
-   A "token" is just a named color, like --surface-1. Every rule below uses
-   the names, never raw color codes. That way switching theme only has to
-   change the names in one place and the whole page follows.
+   FILE MAP
+   1. Color tokens (3 themes: light / dark / auto)
+   2. Page basics + neobrutalist building blocks (.nb-box, shadows)
+   3. Header, theme switch, full screen button
+   4. Filters bar
+   5. Tabs bar + panel banners (the numbered/colored sections)
+   6. Stat tiles
+   7. Cards and the chart
+   8. Table, insights, history, calculator, amortization
+   9. Glossary / Word Bank + hover-defined terms
+   10. Tooltips and the guided tour
+   11. Full-screen mode + small screens
    ========================================================================== */
 
 /* == 1. COLOR TOKENS ====================================================== */
 
-/* Light theme is the default set of values. */
 :root {
   color-scheme: light;
 
-  --surface-1: #fcfcfb;          /* cards and the chart background */
-  --page: #f9f9f7;               /* the page behind the cards */
-  --text-primary: #0b0b0b;
-  --text-secondary: #52514e;
-  --text-muted: #898781;
-  --grid: #e1e0d9;               /* faint horizontal chart lines */
-  --axis: #c3c2b7;
-  --border: rgba(11, 11, 11, 0.10);
-  --hover-wash: rgba(11, 11, 11, 0.04);
+  --page: #FBF6E9;               /* warm cream page background */
+  --surface-1: #FFFFFF;          /* cards */
+  --surface-2: #F3EEDD;          /* recessed areas: table headers, calc cells */
+  --text-primary: #111111;
+  --text-secondary: #3A3A38;
+  --text-muted: #6B6862;
+  --grid: #E4DFCE;
+  --axis: #B9B39F;
 
-  /* The three data series. These exact values were checked with a
-     color-blindness validator so the lines stay tellable apart. */
+  /* --ink is the neobrutalist border/shadow color - solid black on light. */
+  --ink: #111111;
+  --shadow-sm: 3px 3px 0 var(--ink);
+  --shadow-md: 5px 5px 0 var(--ink);
+  --shadow-lg: 8px 8px 0 var(--ink);
+
+  /* The three data series - validated for color-blind readability. */
   --series-1: #2a78d6;           /* 30-year fixed  - blue */
   --series-2: #eb6834;           /* 15-year fixed  - orange */
   --series-3: #1baf7a;           /* 5/1 ARM        - aqua */
 
-  --good: #006300;               /* rate went down = cheaper */
-  --bad: #d03b3b;                /* rate went up   = costlier */
+  --good: #128A3E;
+  --bad: #D7263D;
   --accent: #2a78d6;
   --accent-ink: #ffffff;
+  --cta: #FFD400;                /* the one loud "click me" yellow */
+  --cta-ink: #111111;
+
+  /* Section-identity colors: same across all 3 themes, on purpose - a
+     highlighter color doesn't need to "match the mood lighting". Always
+     paired with a number + name, so color is never the only cue. */
+  --sec-0: #D9D5C4;   /* Controls - neutral, it's a tool, not a chapter */
+  --sec-1: #FFD400;   /* Start Here */
+  --sec-2: #46DFB1;   /* Graph */
+  --sec-3: #FFB100;   /* Stats */
+  --sec-4: #C792FF;   /* History */
+  --sec-5: #74C7FF;   /* Calculator */
+  --sec-6: #8BE28B;   /* Word Bank */
+  --hi-bg: #FFF177;   /* the highlighter color for defined terms */
 
   --radius: 12px;
-  --shadow: 0 1px 2px rgba(11, 11, 11, 0.05), 0 8px 24px rgba(11, 11, 11, 0.04);
+  --radius-sm: 7px;
   --font: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-/* Dark theme values. These are declared twice on purpose:
-   - the @media block follows the device setting
-   - the [data-theme="dark"] block follows this page's own toggle
-   The :not() guard lets an explicit "Light" choice beat a dark device. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --surface-1: #1a1a19;
-    --page: #0d0d0d;
-    --text-primary: #ffffff;
-    --text-secondary: #c3c2b7;
-    --text-muted: #898781;
-    --grid: #2c2c2a;
-    --axis: #383835;
-    --border: rgba(255, 255, 255, 0.10);
-    --hover-wash: rgba(255, 255, 255, 0.06);
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
-    --good: #0ca30c;
-    --bad: #e66767;
-    --accent: #3987e5;
-    --accent-ink: #0d0d0d;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+    --page: #121210;
+    --surface-1: #1C1B17;
+    --surface-2: #262420;
+    --text-primary: #FBF8F0;
+    --text-secondary: #D7D3C4;
+    --text-muted: #9A9689;
+    --grid: #34322B;
+    --axis: #46443A;
+    --ink: #FBF8F0;
+    --series-1: #5B9DEE;
+    --series-2: #FF8555;
+    --series-3: #3FCB93;
+    --good: #33D17A;
+    --bad: #FF6B7F;
+    --accent: #5B9DEE;
+    --accent-ink: #111111;
+    --cta: #FFD400;
+    --cta-ink: #111111;
   }
 }
-
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --surface-1: #1a1a19;
-  --page: #0d0d0d;
-  --text-primary: #ffffff;
-  --text-secondary: #c3c2b7;
-  --text-muted: #898781;
-  --grid: #2c2c2a;
-  --axis: #383835;
-  --border: rgba(255, 255, 255, 0.10);
-  --hover-wash: rgba(255, 255, 255, 0.06);
-  --series-1: #3987e5;
-  --series-2: #d95926;
-  --series-3: #199e70;
-  --good: #0ca30c;
-  --bad: #e66767;
-  --accent: #3987e5;
-  --accent-ink: #0d0d0d;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+  --page: #121210;
+  --surface-1: #1C1B17;
+  --surface-2: #262420;
+  --text-primary: #FBF8F0;
+  --text-secondary: #D7D3C4;
+  --text-muted: #9A9689;
+  --grid: #34322B;
+  --axis: #46443A;
+  --ink: #FBF8F0;
+  --series-1: #5B9DEE;
+  --series-2: #FF8555;
+  --series-3: #3FCB93;
+  --good: #33D17A;
+  --bad: #FF6B7F;
+  --accent: #5B9DEE;
+  --accent-ink: #111111;
+  --cta: #FFD400;
+  --cta-ink: #111111;
 }
 
-/* == 2. PAGE BASICS ======================================================= */
+/* == 2. PAGE BASICS + BUILDING BLOCKS ===================================== */
 
 * { box-sizing: border-box; }
-
-/* The hidden="" attribute normally means display:none, but any author rule
-   that sets display (like the grid on .chart-empty below) would quietly beat
-   it. This one line makes hidden always win. */
 [hidden] { display: none !important; }
 
 body {
@@ -116,46 +130,52 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3 { margin: 0; line-height: 1.25; letter-spacing: -0.01em; }
-h1 { font-size: 1.15rem; }
-h2 { font-size: 1.05rem; }
-h3 { font-size: 0.95rem; }
+h1, h2, h3 { margin: 0; line-height: 1.2; letter-spacing: -0.01em; font-weight: 800; }
+h1 { font-size: 1.2rem; }
+h2 { font-size: 1.15rem; }
+h3 { font-size: 1rem; }
 p { margin: 0; }
+.lede { font-size: 1.05rem; color: var(--text-secondary); max-width: 72ch; }
+
+kbd {
+  font: inherit;
+  font-size: 0.8em;
+  border: 2px solid var(--ink);
+  border-radius: 5px;
+  padding: 1px 6px;
+  background: var(--surface-2);
+  box-shadow: 2px 2px 0 var(--ink);
+}
 
 .page {
-  max-width: 1180px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 24px 16px 64px;
+  padding: 20px 20px 64px;
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-kbd {
-  font: inherit;
-  font-size: 0.8em;
-  border: 1px solid var(--border);
-  border-bottom-width: 2px;
-  border-radius: 5px;
-  padding: 1px 5px;
-  background: var(--page);
+/* A "nb-box" is the base neobrutalist container: thick border, flat hard
+   shadow, no blur, no transparency tricks. Everything boxy uses this. */
+.card, .tile, .filtersbar, .panel-banner, .tabbtn, .btn, .chip,
+.section-badge, .event, .calc-cell, .qf, details, .chart-card,
+input[type="date"], input[type="number"], select, .tour-box {
+  border: 3px solid var(--ink);
+  border-radius: var(--radius);
 }
 
-/* == 3. TOP BAR =========================================================== */
+/* == 3. HEADER ============================================================ */
 
 .topbar {
-  position: sticky;
-  top: 0;
-  z-index: 40;
   background: var(--surface-1);
-  border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(6px);
+  border-bottom: 3px solid var(--ink);
+  padding: 4px 0;
 }
-
 .topbar-inner {
-  max-width: 1180px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 10px 16px;
+  padding: 10px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -164,72 +184,76 @@ kbd {
 }
 
 .brand { display: flex; align-items: center; gap: 10px; }
-.brand-mark { font-size: 1.5rem; }
+.brand-mark { font-size: 1.7rem; }
 .brand-sub { color: var(--text-secondary); font-size: 0.78rem; }
 
-.topbar-actions { display: flex; align-items: center; gap: 10px; }
+.topbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
-/* Buttons ---------------------------------------------------------------- */
+/* Buttons: the signature neobrutalist "press" interaction - shadow shrinks
+   and the box shifts toward the shadow when clicked, like a real button. */
 .btn {
   font: inherit;
+  font-weight: 700;
   font-size: 0.85rem;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  padding: 7px 12px;
+  padding: 8px 14px;
   cursor: pointer;
   background: var(--surface-1);
   color: var(--text-primary);
-  transition: background 0.12s ease, border-color 0.12s ease;
+  box-shadow: var(--shadow-sm);
+  transform: translate(0, 0);
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
   white-space: nowrap;
 }
-.btn:hover { background: var(--hover-wash); }
-.btn-accent { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 600; }
-.btn-accent:hover { filter: brightness(1.08); background: var(--accent); }
-.btn-ghost { background: transparent; }
+.btn:hover { filter: brightness(0.97); }
+.btn:active, .btn.is-pressed {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
+}
+.btn-accent { background: var(--cta); color: var(--cta-ink); }
+.btn-ghost { background: var(--surface-1); }
+.btn-big { font-size: 1rem; padding: 12px 20px; box-shadow: var(--shadow-md); }
+.btn-big:active { box-shadow: 0 0 0 var(--ink); }
 
-/* The three-way theme switch -------------------------------------------- */
+.btn-fullscreen[aria-pressed="true"] { background: var(--cta); color: var(--cta-ink); }
+
+/* Theme switch */
 .segmented {
   display: inline-flex;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 3px solid var(--ink);
+  border-radius: var(--radius-sm);
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 .seg-btn {
   font: inherit;
+  font-weight: 700;
   font-size: 0.8rem;
   border: 0;
-  background: transparent;
+  background: var(--surface-1);
   color: var(--text-secondary);
-  padding: 7px 10px;
+  padding: 7px 11px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 5px;
 }
-.seg-btn + .seg-btn { border-left: 1px solid var(--border); }
-.seg-btn:hover { background: var(--hover-wash); }
-.seg-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.seg-btn + .seg-btn { border-left: 3px solid var(--ink); }
+.seg-btn:hover { filter: brightness(0.97); }
+.seg-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 .seg-label { font-size: 0.78rem; }
 
-/* == 4. INTRO + CONTROLS ================================================== */
+/* == 4. FILTERS BAR ======================================================== */
 
-.intro p {
-  color: var(--text-secondary);
-  max-width: 78ch;
-  font-size: 0.95rem;
-}
-.intro strong { color: var(--text-primary); }
-
-.controls {
+.filtersbar {
+  max-width: 1280px;
+  margin: 20px auto 0;
   background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 16px;
+  box-shadow: var(--shadow-md);
+  padding: 14px 18px;
   display: flex;
   flex-wrap: wrap;
-  gap: 22px 28px;
+  gap: 18px 26px;
   align-items: flex-start;
-  box-shadow: var(--shadow);
 }
 
 .control-group { display: flex; flex-direction: column; gap: 7px; }
@@ -240,82 +264,179 @@ kbd {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 700;
   display: flex;
   align-items: center;
   gap: 5px;
 }
 
-/* Time-range preset chips */
-.chips { display: flex; gap: 5px; flex-wrap: wrap; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .chip {
   font: inherit;
+  font-weight: 700;
   font-size: 0.82rem;
-  border: 1px solid var(--border);
-  background: transparent;
+  background: var(--surface-1);
   color: var(--text-secondary);
-  border-radius: 7px;
-  padding: 5px 11px;
+  padding: 5px 12px;
   cursor: pointer;
   min-width: 44px;
+  box-shadow: var(--shadow-sm);
+  transform: translate(0, 0);
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
 }
-.chip:hover { background: var(--hover-wash); }
+.chip:hover { filter: brightness(0.97); }
 .chip[aria-pressed="true"] {
   background: var(--accent);
   color: var(--accent-ink);
-  border-color: transparent;
-  font-weight: 600;
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
 }
 
 .custom-range { display: flex; gap: 8px; flex-wrap: wrap; }
 .mini {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
+  font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
 }
 input[type="date"], select, input[type="number"] {
   font: inherit;
   font-size: 0.82rem;
+  font-weight: 600;
   color: var(--text-primary);
-  background: var(--page);
-  border: 1px solid var(--border);
-  border-radius: 7px;
+  background: var(--surface-2);
   padding: 5px 8px;
 }
 
-/* Checkbox rows */
 .checks { display: flex; flex-direction: column; gap: 5px; }
 .check {
   display: flex;
   align-items: center;
   gap: 7px;
   font-size: 0.85rem;
+  font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
 }
-.check input { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+.check input { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
 
-/* Little colored line that matches each series' line in the chart */
-.swatch { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
+.swatch { width: 16px; height: 4px; border-radius: 2px; display: inline-block; border: 1px solid var(--ink); }
 .swatch-1 { background: var(--series-1); }
 .swatch-2 { background: var(--series-2); }
 .swatch-3 { background: var(--series-3); }
 
-/* == 5. STAT TILES ======================================================== */
+/* == 5. SECTION IDENTITY: badges, tabs, panel banners ===================== */
+
+/* The little "0 · Controls" chip at the front of the filters bar. */
+.section-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: var(--sec-0);
+  box-shadow: var(--shadow-sm);
+  flex: none;
+}
+.badge-num {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--surface-1);
+  font-weight: 800; font-size: 0.85rem; color: var(--ink);
+}
+.badge-title { font-weight: 800; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: #111; }
+.badge-neutral { background: var(--sec-0); }
+
+/* The tab bar: six chunky buttons. The ACTIVE tab looks physically pressed
+   in (shadow gone, box shifted) - that is the selection state, and it
+   doubles as a teaching moment about how the buttons elsewhere behave too. */
+.tabsbar {
+  max-width: 1280px;
+  margin: 14px auto 0;
+  padding: 0 20px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.tabbtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  font: inherit;
+  font-weight: 800;
+  font-size: 0.88rem;
+  color: #111;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transform: translate(0, 0);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.tabbtn:hover { filter: brightness(0.97); }
+.tabbtn[aria-selected="true"] {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
+}
+.tab-num {
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: rgba(255,255,255,0.55);
+  font-size: 0.8rem;
+}
+.tab-icon { font-size: 1rem; }
+.tab-1 { background: var(--sec-1); }
+.tab-2 { background: var(--sec-2); }
+.tab-3 { background: var(--sec-3); }
+.tab-4 { background: var(--sec-4); }
+.tab-5 { background: var(--sec-5); }
+.tab-6 { background: var(--sec-6); }
+
+/* The banner that repeats a tab's number + color + name at the top of its
+   panel, so the identity is visible while you're reading the content too. */
+.panel-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  box-shadow: var(--shadow-md);
+  color: #111;
+}
+.panel-banner h2 { color: #111; }
+.panel-banner p { color: #262620; font-size: 0.85rem; font-weight: 600; }
+.banner-num {
+  width: 44px; height: 44px;
+  flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  background: rgba(255,255,255,0.6);
+  font-size: 1.3rem; font-weight: 800;
+}
+.banner-1 { background: var(--sec-1); }
+.banner-2 { background: var(--sec-2); }
+.banner-3 { background: var(--sec-3); }
+.banner-4 { background: var(--sec-4); }
+.banner-5 { background: var(--sec-5); }
+.banner-6 { background: var(--sec-6); }
+
+.tabpanel { display: flex; flex-direction: column; gap: 18px; }
+
+/* == 6. STAT TILES ========================================================= */
 
 .tiles {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
+  gap: 14px;
 }
 .tile {
   background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
   padding: 13px 15px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-sm);
   min-width: 0;
 }
 .tile-label {
@@ -323,29 +444,27 @@ input[type="date"], select, input[type="number"] {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 700;
   display: flex;
   align-items: center;
   gap: 5px;
 }
 .tile-value {
-  font-size: 1.75rem;
-  font-weight: 650;
+  font-size: 1.85rem;
+  font-weight: 800;
   letter-spacing: -0.02em;
   margin-top: 3px;
 }
-.tile-note { font-size: 0.74rem; color: var(--text-secondary); margin-top: 1px; }
+.tile-note { font-size: 0.74rem; color: var(--text-secondary); margin-top: 1px; font-weight: 600; }
 .up { color: var(--bad); }
 .down { color: var(--good); }
 
-/* == 6. CARDS AND CHART =================================================== */
+/* == 7. CARDS AND CHART ==================================================== */
 
 .card {
   background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
   padding: 18px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-md);
 }
 .card-head {
   display: flex;
@@ -355,28 +474,18 @@ input[type="date"], select, input[type="number"] {
   flex-wrap: wrap;
   margin-bottom: 12px;
 }
-.card-sub { font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px; }
+.card-sub { font-size: 0.82rem; color: var(--text-secondary); margin-top: 2px; font-weight: 500; }
 .card-foot { font-size: 0.75rem; color: var(--text-muted); margin-top: 10px; }
-.sub-head {
-  margin-top: 20px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
-  color: var(--text-secondary);
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
 
-/* Legend: one row of "line + name" keys */
 .legend { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
-.legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text-secondary); }
-.legend-line { width: 18px; height: 3px; border-radius: 2px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); }
+.legend-line { width: 18px; height: 4px; border-radius: 2px; border: 1px solid var(--ink); }
 
 .chart-wrap { position: relative; width: 100%; }
 #chart { width: 100%; display: block; touch-action: none; }
-#chart:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+#chart:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 8px; }
 
-.chart-help { font-size: 0.76rem; color: var(--text-muted); margin-top: 10px; }
+.chart-help { font-size: 0.78rem; color: var(--text-muted); margin-top: 10px; font-weight: 600; }
 
 .chart-empty {
   position: absolute;
@@ -386,53 +495,53 @@ input[type="date"], select, input[type="number"] {
   text-align: center;
   padding: 24px;
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
-/* The box that follows your mouse across the chart */
 .chart-tooltip {
   position: absolute;
   pointer-events: none;
   background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+  border: 3px solid var(--ink);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
   padding: 9px 11px;
   font-size: 0.8rem;
   min-width: 150px;
   z-index: 20;
 }
-.tt-date { color: var(--text-secondary); font-size: 0.72rem; margin-bottom: 5px; }
+.tt-date { color: var(--text-secondary); font-size: 0.72rem; margin-bottom: 5px; font-weight: 700; }
 .tt-row { display: flex; align-items: center; gap: 7px; margin-top: 3px; }
 .tt-key { width: 14px; height: 3px; border-radius: 2px; flex: none; }
-/* The value leads (bold, full contrast); the label follows (quieter). */
-.tt-val { font-weight: 650; font-variant-numeric: tabular-nums; }
-.tt-name { color: var(--text-secondary); font-size: 0.76rem; }
+.tt-val { font-weight: 800; font-variant-numeric: tabular-nums; }
+.tt-name { color: var(--text-secondary); font-size: 0.76rem; font-weight: 600; }
 .tt-none { color: var(--text-muted); font-size: 0.76rem; font-style: italic; }
 .tt-event {
   margin-top: 7px;
   padding-top: 7px;
-  border-top: 1px solid var(--border);
+  border-top: 2px dashed var(--ink);
   font-size: 0.74rem;
   color: var(--text-secondary);
   max-width: 230px;
 }
 
-/* == 7. TABLE / INSIGHTS / CALCULATOR / GLOSSARY ========================== */
+/* == 8. TABLE / HISTORY / CALCULATOR / AMORTIZATION ======================= */
 
-.table-wrap { max-height: 420px; overflow: auto; border: 1px solid var(--border); border-radius: 9px; }
+.table-wrap { max-height: 420px; overflow: auto; border: 3px solid var(--ink); border-radius: var(--radius-sm); }
 table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 thead th {
   position: sticky;
   top: 0;
-  background: var(--surface-1);
+  background: var(--surface-2);
   text-align: right;
   padding: 8px 12px;
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--text-muted);
-  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  font-weight: 800;
+  border-bottom: 3px solid var(--ink);
 }
 thead th:first-child, tbody td:first-child { text-align: left; }
 tbody td {
@@ -441,42 +550,40 @@ tbody td {
   font-variant-numeric: tabular-nums;
   border-bottom: 1px solid var(--grid);
   color: var(--text-secondary);
+  font-weight: 600;
 }
-tbody tr:hover td { background: var(--hover-wash); }
+tbody tr:hover td { background: var(--surface-2); }
 
-/* Insight bullets */
-.insights { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.insights { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .insights li {
   display: flex;
   gap: 10px;
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   color: var(--text-secondary);
   line-height: 1.5;
 }
 .insights li::before {
   content: "";
   flex: none;
-  width: 3px;
+  width: 5px;
   border-radius: 2px;
   background: var(--accent);
+  border: 1px solid var(--ink);
   align-self: stretch;
 }
-.insights strong { color: var(--text-primary); font-weight: 650; }
+.insights strong { color: var(--text-primary); font-weight: 800; }
 
-/* History event cards */
-.events { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; margin-top: 12px; }
+.events { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-top: 12px; }
 .event {
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  padding: 11px 13px;
-  background: var(--page);
+  padding: 12px 14px;
+  background: var(--surface-2);
+  box-shadow: var(--shadow-sm);
 }
-.event-when { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; }
-.event-title { font-size: 0.88rem; font-weight: 650; margin: 2px 0 4px; }
-.event-text { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; }
-.events-empty { font-size: 0.85rem; color: var(--text-muted); font-style: italic; }
+.event-when { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 800; }
+.event-title { font-size: 0.9rem; font-weight: 800; margin: 2px 0 4px; }
+.event-text { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.55; }
+.events-empty { font-size: 0.9rem; color: var(--text-muted); font-style: italic; }
 
-/* Calculator */
 .calc-controls { display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap; }
 .calc-field { display: flex; flex-direction: column; gap: 5px; }
 .calc-field--slider { flex: 1; min-width: 220px; }
@@ -485,95 +592,136 @@ tbody tr:hover td { background: var(--hover-wash); }
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 700;
   display: flex;
   align-items: center;
   gap: 5px;
 }
 .calc-input { display: flex; align-items: center; gap: 4px; }
-.calc-input .prefix { color: var(--text-muted); font-size: 0.9rem; }
-#loanAmt { width: 130px; font-variant-numeric: tabular-nums; }
+.calc-input .prefix { color: var(--text-muted); font-size: 0.95rem; font-weight: 800; }
+#loanAmt { width: 140px; font-variant-numeric: tabular-nums; font-weight: 800; }
 input[type="range"] { width: 100%; accent-color: var(--accent); }
-.calc-note { font-size: 0.75rem; color: var(--text-muted); margin-top: 10px; }
+.calc-note { font-size: 0.78rem; color: var(--text-muted); margin-top: 10px; font-weight: 600; }
 
-.calc-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 14px; }
+.calc-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 14px; }
 .calc-cell {
-  border: 1px solid var(--border);
-  border-radius: 9px;
   padding: 12px 14px;
-  background: var(--page);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-sm);
 }
-.calc-cell-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; }
-.calc-cell-rate { font-size: 0.78rem; color: var(--text-secondary); margin-top: 1px; }
-.calc-cell-value { font-size: 1.4rem; font-weight: 650; letter-spacing: -0.02em; margin-top: 4px; }
-.calc-cell-sub { font-size: 0.73rem; color: var(--text-muted); }
+.calc-cell-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 800; }
+.calc-cell-rate { font-size: 0.78rem; color: var(--text-secondary); margin-top: 1px; font-weight: 600; }
+.calc-cell-value { font-size: 1.45rem; font-weight: 800; letter-spacing: -0.02em; margin-top: 4px; }
+.calc-cell-sub { font-size: 0.73rem; color: var(--text-muted); font-weight: 600; }
 .calc-lesson {
   margin-top: 14px;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   color: var(--text-secondary);
-  border-left: 3px solid var(--accent);
+  border-left: 5px solid var(--accent);
   padding-left: 12px;
   line-height: 1.55;
+  font-weight: 500;
 }
-.calc-lesson strong { color: var(--text-primary); }
+.calc-lesson strong { color: var(--text-primary); font-weight: 800; }
 
-/* Glossary */
-.glossary { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
-details {
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  padding: 9px 12px;
-  background: var(--page);
+.amort-select-wrap select { font-weight: 700; box-shadow: var(--shadow-sm); }
+
+/* == 9. GLOSSARY / WORD BANK + hover-defined terms ========================= */
+
+.quickfacts { display: flex; gap: 14px; flex-wrap: wrap; margin: 16px 0; }
+.qf { flex: 1; min-width: 130px; padding: 12px 14px; background: var(--surface-2); box-shadow: var(--shadow-sm); text-align: center; }
+.qf-num { font-size: 1.7rem; font-weight: 800; color: var(--accent); }
+.qf-label { font-size: 0.75rem; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+
+.stepslist { margin: 10px 0 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; font-size: 0.92rem; color: var(--text-secondary); }
+.stepslist li { line-height: 1.5; }
+
+.term-demo { background: var(--hi-bg); color: #111; padding: 0 4px; border-radius: 3px; border-bottom: 2px dotted #111; font-weight: 700; }
+
+/* Any word wrapped in .term gets the "highlighter" treatment and reuses the
+   same tooltip system as the "?" buttons - hover or Tab+focus to read it. */
+.term {
+  background: var(--hi-bg);
+  color: #111;
+  padding: 0 4px;
+  border-radius: 3px;
+  cursor: help;
+  font-weight: 800;
+  border-bottom: 2px dotted #111;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
-summary { cursor: pointer; font-size: 0.87rem; font-weight: 600; }
-details p { font-size: 0.81rem; color: var(--text-secondary); margin-top: 7px; line-height: 1.5; }
+.term:hover, .term:focus-visible { background: #FFE066; outline: 2px solid #111; outline-offset: 1px; }
 
-.footer { color: var(--text-muted); font-size: 0.76rem; line-height: 1.6; padding-top: 6px; }
-.footer-fine { margin-top: 4px; opacity: 0.8; }
+.glossary-jump { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 16px; }
+.jump-btn {
+  width: 30px; height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 0.82rem;
+  background: var(--surface-2);
+  box-shadow: 2px 2px 0 var(--ink);
+  cursor: pointer;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+}
+.jump-btn:hover { background: var(--hi-bg); color: #111; }
 
-/* == 8. TOOLTIPS AND TOUR ================================================= */
+.glossary { display: flex; flex-direction: column; gap: 10px; }
+.gloss-entry {
+  padding: 12px 14px;
+  background: var(--surface-2);
+  box-shadow: var(--shadow-sm);
+  scroll-margin-top: 90px;
+}
+.gloss-term { font-weight: 800; font-size: 0.95rem; }
+.gloss-letter { color: var(--accent); }
+.gloss-def { font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.5; }
 
-/* The round "?" button */
+.footer { color: var(--text-muted); font-size: 0.78rem; line-height: 1.6; padding-top: 6px; font-weight: 500; }
+.footer-fine { margin-top: 4px; opacity: 0.85; }
+
+/* == 10. TOOLTIPS AND TOUR ================================================= */
+
 .tip {
-  width: 15px;
-  height: 15px;
+  width: 17px;
+  height: 17px;
   border-radius: 50%;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-muted);
+  border: 2px solid var(--ink);
+  background: var(--surface-1);
+  color: var(--text-primary);
   font-size: 10px;
   line-height: 1;
   cursor: help;
   padding: 0;
   flex: none;
   font-family: var(--font);
+  font-weight: 800;
 }
-.tip::after { content: "?"; font-weight: 700; }
-.tip:hover, .tip:focus-visible { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.tip::after { content: "?"; }
+.tip:hover, .tip:focus-visible { background: var(--cta); color: #111; }
 
-/* The bubble the "?" buttons share */
 .tipbubble {
   position: fixed;
   z-index: 100;
-  max-width: 280px;
+  max-width: 290px;
   background: var(--text-primary);
-  color: var(--surface-1);
-  font-size: 0.8rem;
+  color: var(--page);
+  font-size: 0.82rem;
+  font-weight: 600;
   line-height: 1.45;
-  padding: 9px 11px;
-  border-radius: 9px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  padding: 10px 12px;
+  border: 3px solid var(--ink);
+  border-radius: var(--radius-sm);
+  box-shadow: 4px 4px 0 var(--ink);
   pointer-events: none;
 }
-
-/* Guided tour */
 .tour { position: fixed; inset: 0; z-index: 90; }
 .tour-spot {
   position: absolute;
   border-radius: 12px;
-  /* A giant shadow dims the entire page except this rectangle. */
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
-  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 9999px rgba(17, 17, 17, 0.65);
+  border: 4px solid var(--cta);
   transition: all 0.25s ease;
   pointer-events: none;
 }
@@ -581,19 +729,30 @@ details p { font-size: 0.81rem; color: var(--text-secondary); margin-top: 7px; l
   position: absolute;
   width: min(360px, calc(100vw - 32px));
   background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  border: 3px solid var(--ink);
+  box-shadow: var(--shadow-lg);
   padding: 16px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
   transition: all 0.25s ease;
 }
-.tour-step { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 600; }
+.tour-step { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 800; }
 .tour-box h3 { margin: 3px 0 6px; }
-.tour-box p:not(.tour-step) { font-size: 0.87rem; color: var(--text-secondary); line-height: 1.5; }
+.tour-box p:not(.tour-step) { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; font-weight: 500; }
 .tour-nav { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
 .tour-nav .spacer { flex: 1; }
 
-/* == 9. SMALL SCREENS ===================================================== */
+/* == 11. FULL-SCREEN MODE + SMALL SCREENS ================================== */
+
+/* This tool is built for desktop, and especially for full-screen desktop -
+   the chart and tiles get a bit more room to breathe when you press the
+   Full Screen button, instead of staying capped at a laptop-friendly width. */
+body.is-fullscreen .page,
+body.is-fullscreen .filtersbar,
+body.is-fullscreen .tabsbar,
+body.is-fullscreen .topbar-inner {
+  max-width: 1520px;
+}
+body.is-fullscreen .tile-value { font-size: 2.05rem; }
+body.is-fullscreen .card { padding: 22px; }
 
 @media (max-width: 900px) {
   .tiles { grid-template-columns: repeat(2, 1fr); }
@@ -603,14 +762,14 @@ details p { font-size: 0.81rem; color: var(--text-secondary); margin-top: 7px; l
 @media (max-width: 560px) {
   .page { padding: 16px 16px 48px; }
   .tiles { grid-template-columns: 1fr 1fr; }
-  .tile-value { font-size: 1.45rem; }
+  .tile-value { font-size: 1.5rem; }
   .seg-label { display: none; }
-  .controls { gap: 18px; }
+  .filtersbar { gap: 16px; }
   .brand-sub { display: none; }
-  h1 { font-size: 1rem; }
+  h1 { font-size: 1.05rem; }
+  .tabbtn .tab-name { display: none; }
 }
 
-/* Respect a device setting that asks for less animation. */
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }

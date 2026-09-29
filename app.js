@@ -1,191 +1,144 @@
 /* ==========================================================================
    Mortgage Rate Explorer - all the interactive logic
    --------------------------------------------------------------------------
-   HOW THIS FILE IS ORGANISED
-
-     1.  Settings: the series, the history notes, the tour script
-     2.  State: the handful of variables describing "what is on screen now"
-     3.  Little helper functions (dates, formatting, maths)
-     4.  Startup: load the data, wire up every control
-     5.  render(): the one function that redraws the whole page
+   FILE MAP
+     1.  Settings: series, history notes, glossary (Word Bank), tour script
+     2.  State: what is currently selected / which tab is open
+     3.  Helper functions (dates, formatting, maths, term-highlighting)
+     4.  Startup: load the data, wire up every control, build the tabs
+     5.  render(): redraws every tab's content from the current filters
      6.  drawChart(): builds the SVG line chart by hand
      7.  The hover crosshair and tooltip
-     8.  Stat tiles, insights, table, calculator
-     9.  Theme switching, CSV download, guided tour
-
-   A note on style: this file deliberately avoids clever shortcuts. Everything
-   is a plainly named function doing one job, so you can read it top to bottom.
+     8.  Tiles, insights, history, table
+     9.  Calculator + amortization schedule
+     10. Glossary / Word Bank
+     11. Theme switching, full screen, CSV download, tooltips, tour
    ========================================================================== */
 
 /* == 1. SETTINGS ========================================================== */
 
-/* The three data series. "key" is how we refer to it in code, "col" is which
-   position it sits in inside each row of data.json, and "color" is the CSS
-   token name so the line automatically recolors when the theme changes. */
 var SERIES = [
   { key: "r30", col: 1, name: "30-year fixed", color: "--series-1", dash: "",       box: "sr30" },
   { key: "r15", col: 2, name: "15-year fixed", color: "--series-2", dash: "7 4",    box: "sr15" },
   { key: "arm", col: 3, name: "5/1 ARM",       color: "--series-3", dash: "2 4",    box: "sarm" }
 ];
 
-/* Curated history notes. Every number quoted here was read straight out of the
-   spreadsheet, so the markers and the chart can never disagree. */
+/* Curated history notes. Every number quoted here was read straight out of
+   the spreadsheet, so the markers and the chart can never disagree. */
 var EVENTS = [
-  {
-    date: "1971-04-02",
-    title: "The survey begins",
-    text: "Freddie Mac records its very first weekly average: 7.33% on a 30-year fixed loan. Everything on this chart starts here."
-  },
-  {
-    date: "1980-04-11",
-    title: "The fastest climb ever recorded",
-    text: "In just 52 weeks the 30-year rate leapt from 10.48% to 16.35% - a rise of 5.87 points, still the steepest one-year jump in the survey's history."
-  },
-  {
-    date: "1981-10-09",
-    title: "The all-time peak: 18.63%",
-    text: "To crush double-digit inflation, the Federal Reserve pushed borrowing costs to punishing levels. This single week remains the most expensive in 55 years of record-keeping."
-  },
-  {
-    date: "1983-02-11",
-    title: "The fastest fall ever recorded",
-    text: "The mirror image of 1980: rates dropped 4.59 points in a year, from 17.65% down to 13.06%, as inflation finally broke."
-  },
-  {
-    date: "1986-04-04",
-    title: "Back under 10%",
-    text: "For the first time since 1978, a 30-year loan cost single-digit interest - 9.99%. Rates would not return to double digits again for good."
-  },
-  {
-    date: "1991-08-30",
-    title: "The 15-year loan joins the survey",
-    text: "The orange line starts here. Before this week there simply is no 15-year data to plot - a blank stretch on a chart usually means 'not measured', not 'zero'."
-  },
-  {
-    date: "2003-06-13",
-    title: "A then-record low of 5.21%",
-    text: "What felt astonishingly cheap in 2003 would look expensive again within twenty years. Context is everything when reading a chart."
-  },
-  {
-    date: "2005-01-06",
-    title: "The 5/1 ARM joins the survey",
-    text: "The green line starts here. Adjustable-rate loans were popular in the run-up to the housing bubble because they opened with a lower rate."
-  },
-  {
-    date: "2008-09-12",
-    title: "The global financial crisis",
-    text: "The housing crash reshaped lending. Notice that mortgage rates fell rather than spiked - lenders followed a collapsing economy down."
-  },
-  {
-    date: "2009-01-15",
-    title: "Under 5% for the first time",
-    text: "Emergency policy after the crash pushed a 30-year loan to 4.96%, a level no borrower had ever seen in this dataset before."
-  },
-  {
-    date: "2012-11-21",
-    title: "A post-crisis floor of 3.31%",
-    text: "Years of low rates made this the cheapest borrowing in history to that point - and it still had further to fall."
-  },
-  {
-    date: "2020-03-05",
-    title: "The pandemic arrives",
-    text: "COVID-19 sent investors rushing to safety, which dragged mortgage rates down. By July 2020 a 30-year loan cost under 3% for the first time ever."
-  },
-  {
-    date: "2021-01-07",
-    title: "The all-time low: 2.65%",
-    text: "The cheapest week in 55 years - roughly one seventh the cost of the 1981 peak on the very same loan."
-  },
-  {
-    date: "2022-11-10",
-    title: "The ARM series ends",
-    text: "Freddie Mac stopped publishing 5/1 ARM rates. The green line stops here for that reason alone - the loans still exist, they are just no longer surveyed."
-  },
-  {
-    date: "2023-10-26",
-    title: "7.79% - a 23-year high",
-    text: "Rates more than doubled in two years as the Fed fought inflation again. Nobody who bought a house in 2021 would recognise this market."
-  }
+  { date: "1971-04-02", title: "The survey begins", text: "Freddie Mac records its very first weekly average: 7.33% on a 30-year fixed loan. Everything on this chart starts here." },
+  { date: "1980-04-11", title: "The fastest climb ever recorded", text: "In just 52 weeks the 30-year rate leapt from 10.48% to 16.35% - a rise of 5.87 points, still the steepest one-year jump in the survey's history." },
+  { date: "1981-10-09", title: "The all-time peak: 18.63%", text: "To crush double-digit inflation, the Federal Reserve pushed borrowing costs to punishing levels. This single week remains the most expensive in 55 years of record-keeping." },
+  { date: "1983-02-11", title: "The fastest fall ever recorded", text: "The mirror image of 1980: rates dropped 4.59 points in a year, from 17.65% down to 13.06%, as inflation finally broke." },
+  { date: "1986-04-04", title: "Back under 10%", text: "For the first time since 1978, a 30-year loan cost single-digit interest - 9.99%. Rates would not return to double digits again for good." },
+  { date: "1991-08-30", title: "The 15-year loan joins the survey", text: "The orange line starts here. Before this week there simply is no 15-year data to plot - a blank stretch on a chart usually means 'not measured', not 'zero'." },
+  { date: "2003-06-13", title: "A then-record low of 5.21%", text: "What felt astonishingly cheap in 2003 would look expensive again within twenty years. Context is everything when reading a chart." },
+  { date: "2005-01-06", title: "The 5/1 ARM joins the survey", text: "The green line starts here. Adjustable-rate loans were popular in the run-up to the housing bubble because they opened with a lower rate." },
+  { date: "2008-09-12", title: "The global financial crisis", text: "The housing crash reshaped lending. Notice that mortgage rates fell rather than spiked - lenders followed a collapsing economy down." },
+  { date: "2009-01-15", title: "Under 5% for the first time", text: "Emergency policy after the crash pushed a 30-year loan to 4.96%, a level no borrower had ever seen in this dataset before." },
+  { date: "2012-11-21", title: "A post-crisis floor of 3.31%", text: "Years of low rates made this the cheapest borrowing in history to that point - and it still had further to fall." },
+  { date: "2020-03-05", title: "The pandemic arrives", text: "COVID-19 sent investors rushing to safety, which dragged mortgage rates down. By July 2020 a 30-year loan cost under 3% for the first time ever." },
+  { date: "2021-01-07", title: "The all-time low: 2.65%", text: "The cheapest week in 55 years - roughly one seventh the cost of the 1981 peak on the very same loan." },
+  { date: "2022-11-10", title: "The ARM series ends", text: "Freddie Mac stopped publishing 5/1 ARM rates. The green line stops here for that reason alone - the loans still exist, they are just no longer surveyed." },
+  { date: "2023-10-26", title: "7.79% - a 23-year high", text: "Rates more than doubled in two years as the Fed fought inflation again. Nobody who bought a house in 2021 would recognise this market." }
 ];
 
-/* The guided tour. Each step points at an element and explains it. */
+/* The Word Bank. Every entry has a short plain-English definition written
+   for someone who has never heard the term before. "label" is what gets
+   matched (and highlighted) inside other sentences on the page; the same
+   object is the single source of truth for the Word Bank tab AND every
+   hover-highlight anywhere else, so a definition can never drift out of
+   sync with itself. */
+var GLOSSARY = {
+  mortgage:      { label: "Mortgage",       def: "A loan you use to buy a house. You borrow the money, then pay a little of it back every month for many years." },
+  loan:          { label: "Loan",           def: "Money someone lends you that you promise to pay back, usually with extra money on top called interest." },
+  interest:      { label: "Interest",       def: "Extra money you pay for borrowing money. It is the lender's fee for letting you use their cash." },
+  principal:     { label: "Principal",      def: "The original amount of money you borrowed, not counting interest." },
+  rate:          { label: "Mortgage rate",  def: "The yearly interest percentage a lender charges on a home loan. A lower rate means smaller payments." },
+  fixedrate:     { label: "Fixed-rate loan", def: "A loan whose interest rate never changes, from the very first payment to the very last." },
+  arm:           { label: "Adjustable-rate mortgage", def: "A loan whose rate can change after a set number of years, instead of staying the same forever. Often shortened to \"ARM\"." },
+  thirty:        { label: "30-year fixed",  def: "A home loan paid off over 30 years at one interest rate that never changes." },
+  fifteen:       { label: "15-year fixed",  def: "A home loan paid off in half the time of a 30-year loan - bigger monthly payments, but less interest paid overall." },
+  fiveone:       { label: "5/1 ARM",        def: "An adjustable-rate loan. The rate is fixed for the first 5 years, then can change once every year after that." },
+  downpayment:   { label: "Down payment",   def: "Cash you pay up front toward a house, before taking out a loan for the rest of the price." },
+  amortization:  { label: "Amortization",   def: "Paying off a loan bit by bit with regular payments, until the balance reaches zero." },
+  amorttable:    { label: "Amortization table", def: "A list showing exactly how much of each payment goes to interest and how much shrinks your loan balance, year by year." },
+  basispoint:    { label: "Basis point",    def: "One hundredth of a percent (0.01%). Moving from 6.50% to 6.75% is 25 basis points." },
+  movingaverage: { label: "Moving average", def: "The average of several weeks blended together, used to smooth out small bumps and show the bigger trend." },
+  outlier:       { label: "Outlier",        def: "A single data point that sits far away from all the others, like an unusually high or low week." },
+  inflation:     { label: "Inflation",      def: "When prices for everyday things rise over time, so each dollar buys a little less than it used to." },
+  fed:           { label: "Federal Reserve", def: "The United States' central bank. It can raise or lower interest rates to try to control inflation." },
+  freddiemac:    { label: "Freddie Mac",    def: "A government-backed company that buys home loans from banks and publishes the weekly mortgage rate survey used on this whole page." },
+  pmms:          { label: "PMMS",           def: "Primary Mortgage Market Survey - Freddie Mac's weekly report of the average mortgage rate lenders are offering across the country." },
+  pctpoint:      { label: "Percentage point", def: "A plain difference between two percentages. Going from 5% to 6% is a move of 1 percentage point." },
+  crisis:        { label: "Financial crisis", def: "A time when banks, markets and the economy all run into serious trouble at once, like in 2008." }
+};
+
+/* Order the Word Bank alphabetically by label, computed once. */
+var GLOSSARY_ORDER = Object.keys(GLOSSARY).sort(function (a, b) {
+  return GLOSSARY[a].label.localeCompare(GLOSSARY[b].label);
+});
+
+/* A short, 6th-grade-friendly tour. Every step just points at a piece of
+   chrome that is ALWAYS visible (the filters bar, the tab buttons) so the
+   tour never has to switch tabs for you - it hands you the map and lets
+   you click around yourself afterward. */
 var TOUR = [
-  { sel: "#ctlRange",   title: "Start with time",       text: "Every chart question begins with 'over what period?'. These buttons jump to common windows; the date boxes below let you pick any window you like. Everything else on the page obeys this setting." },
-  { sel: "#ctlSeries",  title: "Choose what to compare", text: "Each tick box adds one kind of home loan to the chart. Two lines side by side answer questions a single line cannot - like which loan was cheaper, and by how much." },
-  { sel: "#ctlSmooth",  title: "Cut through the noise",  text: "Raw weekly data jiggles. A moving average blends several weeks together so the real trend shows. Flip between the options and watch the spikes melt away." },
-  { sel: "#tiles",      title: "The headline numbers",   text: "Five summary statistics for whatever range you picked. They recalculate the instant you change a control, so they always match the chart above them." },
-  { sel: "#chartCard",  title: "Read the chart",         text: "Time runs left to right, rate runs bottom to top. Slide your mouse across it and a vertical line will follow, showing you every series' exact value for that week." },
-  { sel: "#insightCard", title: "Insights in plain English", text: "Rather than leaving you to interpret the shapes, this card writes out what your selected range actually shows - and lists the historical moments inside it." },
-  { sel: "#calcCard",   title: "Turn percent into dollars", text: "This is why rates matter. Type in a loan size and see what the same house would cost per month at the best and worst rates in your range." },
-  { sel: ".segmented",  title: "Make it yours",          text: "Switch between light, dark and automatic colors. The chart's palette was tested for color-blind readability in both themes, so the lines stay tellable apart either way." }
+  { sel: "#panel-start .lede", title: "Welcome!", text: "This page shows how much it costs to borrow money for a house, and how that has changed over 55 years. Let's look around fast." },
+  { sel: "#filtersBar", title: "0. Controls", text: "These buttons control everything else on the page. Pick a time period and which loans to compare here first." },
+  { sel: "#tab-graph", title: "2. Graph", text: "Click here to see the numbers as a picture. Move your mouse across it to read any week." },
+  { sel: "#tab-stats", title: "3. Stats", text: "Click here for the same numbers explained in plain sentences, not just a picture." },
+  { sel: "#tab-calculator", title: "5. Calculator", text: "Click here to turn a rate into a real monthly payment in dollars." },
+  { sel: "#tab-glossary", title: "6. Word Bank", text: "Stuck on a word anywhere on this page? Click here, or hover any yellow highlighted word." }
 ];
 
 /* == 2. STATE ============================================================= */
 
-/* ROWS holds the whole dataset once loaded: [dateString, r30, r15, arm]. */
 var ROWS = [];
-var DATES = [];       /* the same dates converted to time numbers, for the x axis */
-var SMOOTHED = {};    /* cache of moving-average versions of each series */
+var DATES = [];
+var SMOOTHED = {};
 
-/* "state" is the single description of what the user has chosen. */
 var state = {
-  from: null,        /* Date object */
-  to: null,          /* Date object */
-  preset: "10",      /* which chip is lit, or "custom" */
+  from: null,
+  to: null,
+  preset: "10",
   visible: { r30: true, r15: true, arm: false },
-  window: 1,         /* smoothing window in weeks: 1, 13 or 52 */
+  window: 1,
   showEvents: true,
-  showTable: false
+  showTable: false,
+  activeTab: "start"
 };
 
-var view = [];       /* the rows currently inside the selected range */
-var hoverIndex = -1; /* which week the crosshair is on, -1 for none */
-var chartGeom = null;/* remembered chart measurements, used by the crosshair */
+var view = [];
+var hoverIndex = -1;
+var chartGeom = null;
+var lastCalcCells = [];
 
-/* == 3. HELPERS =========================================================== */
+/* == 3. HELPERS ============================================================ */
 
 function $(id) { return document.getElementById(id); }
 
-/* Turn "2021-01-07" into a real Date. We add T00:00 so the browser reads it
-   in local time rather than shifting it by a timezone. */
 function toDate(s) { return new Date(s + "T00:00:00"); }
 
-/* Read a CSS token (like --series-1) and get back the actual color. Doing it
-   this way means the chart repaints correctly whenever the theme changes. */
 function token(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-/* "2021-01-07" -> "Jan 7, 2021" */
 function niceDate(s) {
   var d = toDate(s);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
-/* "2021-01-07" -> "Jan 2021" */
 function niceMonth(s) {
   return toDate(s).toLocaleDateString("en-US", { month: "short", year: "numeric" });
 }
 
-/* 6.5 -> "6.50%" */
 function pct(v) { return v == null ? "n/a" : v.toFixed(2) + "%"; }
-
-/* 1234.5 -> "$1,235" */
-function money(v) {
-  return "$" + Math.round(v).toLocaleString("en-US");
-}
-
-/* 1234567 -> "$1.23M", for large totals */
+function money(v) { return "$" + Math.round(v).toLocaleString("en-US"); }
 function bigMoney(v) {
   if (v >= 1000000) return "$" + (v / 1000000).toFixed(2) + "M";
   return money(v);
 }
 
-/* The standard monthly payment formula for a fixed-rate loan.
-     principal = amount borrowed
-     annualRate = e.g. 6.5 for 6.5%
-     years = 30
-   It answers: "what equal payment, made every month, exactly clears this
-   loan plus interest by the end?" */
 function monthlyPayment(principal, annualRate, years) {
   var monthlyRate = annualRate / 100 / 12;
   var months = years * 12;
@@ -194,9 +147,6 @@ function monthlyPayment(principal, annualRate, years) {
   return principal * monthlyRate * growth / (growth - 1);
 }
 
-/* A trailing moving average: each point becomes the average of itself and the
-   previous (windowSize - 1) points. Gaps (nulls) are skipped, not treated as
-   zero, which matters because a missing week is "unknown", not "0%". */
 function movingAverage(values, windowSize) {
   if (windowSize <= 1) return values.slice();
   var out = [];
@@ -206,24 +156,51 @@ function movingAverage(values, windowSize) {
     for (var j = i; j > i - windowSize && j >= 0; j--) {
       if (values[j] != null) { sum += values[j]; count++; }
     }
-    /* Only report an average once we have at least half a window of real
-       data, otherwise the first few points would be misleadingly jumpy. */
     out.push(count >= Math.min(windowSize, 3) / 2 ? sum / count : null);
   }
   return out;
 }
 
-/* == 4. STARTUP =========================================================== */
+/* Find every Word Bank term that appears in a piece of plain text, and
+   wrap the FIRST mention of each one in a highlighted, hover-defined span.
+   Only ever run on text we wrote ourselves (event notes, intro copy) -
+   never on raw spreadsheet values - so building HTML this way is safe. */
+function wrapTerms(text) {
+  var found = [];
+  GLOSSARY_ORDER.forEach(function (key) {
+    var label = GLOSSARY[key].label;
+    var idx = text.toLowerCase().indexOf(label.toLowerCase());
+    if (idx !== -1) found.push({ key: key, start: idx, end: idx + label.length });
+  });
+  /* Longer matches win ties, so "30-year fixed" beats a stray "fixed". */
+  found.sort(function (a, b) { return a.start - b.start || (b.end - b.start) - (a.end - a.start); });
 
-/* Fetch the data file, then build the page. */
+  var picked = [], cursor = -1;
+  found.forEach(function (m) {
+    if (m.start >= cursor) { picked.push(m); cursor = m.end; }
+  });
+  if (!picked.length) return text;
+
+  var out = "", pos = 0;
+  picked.forEach(function (m) {
+    out += text.slice(pos, m.start);
+    var shown = text.slice(m.start, m.end);
+    var def = GLOSSARY[m.key].def.replace(/"/g, "&quot;");
+    out += '<span class="term" tabindex="0" data-tip="' + def + '">' + shown + "</span>";
+    pos = m.end;
+  });
+  out += text.slice(pos);
+  return out;
+}
+
+/* == 4. STARTUP ============================================================ */
+
 fetch("data.json")
   .then(function (r) { return r.json(); })
   .then(function (payload) {
     ROWS = payload.rows;
     DATES = ROWS.map(function (r) { return toDate(r[0]).getTime(); });
 
-    /* Pre-compute the smoothed versions once, for every window size, so
-       flipping the Smoothing control feels instant. */
     [1, 13, 52].forEach(function (w) {
       SMOOTHED[w] = {};
       SERIES.forEach(function (s) {
@@ -232,15 +209,25 @@ fetch("data.json")
       });
     });
 
+    setupTabs();
     setupControls();
     setupTheme();
+    setupFullscreen();
     setupTooltips();
     setupTour();
 
-    $("introCount").textContent = ROWS.length.toLocaleString("en-US");
+    var years = ((toDate(ROWS[ROWS.length - 1][0]) - toDate(ROWS[0][0])) / (365.25 * 24 * 3600 * 1000)).toFixed(0);
+    $("qfWeeks").textContent = ROWS.length.toLocaleString("en-US");
+    $("qfYears").textContent = years;
+    $("introText").innerHTML = wrapTerms(
+      "A mortgage rate is the yearly interest a bank charges to lend you money for a house. Every week since April 1971, " +
+      "Freddie Mac has asked lenders what rate they are offering and written the answer down. That is " + ROWS.length.toLocaleString("en-US") +
+      " weeks of history for you to explore. Pick a tab above to get started."
+    );
     $("footRange").textContent = niceMonth(ROWS[0][0]) + " to " + niceDate(ROWS[ROWS.length - 1][0]);
 
-    applyPreset("10");   /* open on the last 10 years - recent but with context */
+    renderGlossary();
+    applyPreset("10");
   })
   .catch(function (err) {
     document.querySelector(".page").insertAdjacentHTML("afterbegin",
@@ -250,14 +237,42 @@ fetch("data.json")
     console.error(err);
   });
 
-/* Attach every control to the render() function. */
+/* --- Tabs ---------------------------------------------------------------- */
+
+var TAB_NAMES = ["start", "graph", "stats", "history", "calculator", "glossary"];
+
+function setupTabs() {
+  document.querySelectorAll(".tabbtn").forEach(function (btn) {
+    btn.addEventListener("click", function () { showTab(btn.dataset.tab); });
+  });
+  var saved = null;
+  try { saved = localStorage.getItem("mre-tab"); } catch (e) { /* ignore */ }
+  showTab(TAB_NAMES.indexOf(saved) !== -1 ? saved : "start");
+}
+
+function showTab(name) {
+  TAB_NAMES.forEach(function (t) {
+    var panel = $("panel-" + t);
+    var btn = $("tab-" + t);
+    var active = t === name;
+    if (panel) panel.hidden = !active;
+    if (btn) btn.setAttribute("aria-selected", String(active));
+  });
+  state.activeTab = name;
+  try { localStorage.setItem("mre-tab", name); } catch (e) { /* ignore */ }
+  /* The chart measures its own pixel width, so it must be redrawn once its
+     tab is actually visible - drawing into a hidden, zero-width box would
+     produce an empty chart. */
+  if (name === "graph" && ROWS.length) drawChart();
+}
+
+/* --- Controls -------------------------------------------------------------- */
+
 function setupControls() {
-  /* Time-range chips */
   document.querySelectorAll(".chip").forEach(function (chip) {
     chip.addEventListener("click", function () { applyPreset(chip.dataset.years); });
   });
 
-  /* Custom date boxes */
   var first = ROWS[0][0], last = ROWS[ROWS.length - 1][0];
   ["dateFrom", "dateTo"].forEach(function (id) {
     var el = $(id);
@@ -266,7 +281,7 @@ function setupControls() {
     el.addEventListener("change", function () {
       var f = $("dateFrom").value || first;
       var t = $("dateTo").value || last;
-      if (toDate(f) > toDate(t)) return;    /* ignore a backwards range */
+      if (toDate(f) > toDate(t)) return;
       state.from = toDate(f);
       state.to = toDate(t);
       state.preset = "custom";
@@ -275,7 +290,6 @@ function setupControls() {
     });
   });
 
-  /* Series tick boxes */
   SERIES.forEach(function (s) {
     $(s.box).addEventListener("change", function () {
       state.visible[s.key] = this.checked;
@@ -283,13 +297,11 @@ function setupControls() {
     });
   });
 
-  /* Smoothing */
   $("smoothSel").addEventListener("change", function () {
     state.window = parseInt(this.value, 10);
     render();
   });
 
-  /* Display toggles */
   $("showEvents").addEventListener("change", function () { state.showEvents = this.checked; render(); });
   $("showTable").addEventListener("change", function () {
     state.showTable = this.checked;
@@ -297,11 +309,9 @@ function setupControls() {
     render();
   });
 
-  /* Buttons */
   $("resetBtn").addEventListener("click", resetAll);
   $("csvBtn").addEventListener("click", downloadCSV);
 
-  /* Calculator: the number box and the slider stay in sync with each other. */
   $("loanAmt").addEventListener("input", function () {
     var v = clampLoan(this.value);
     $("loanSlider").value = Math.min(1000000, Math.max(50000, v));
@@ -311,12 +321,14 @@ function setupControls() {
     $("loanAmt").value = this.value;
     renderCalculator();
   });
+  $("amortRateSelect").addEventListener("change", function () {
+    renderAmortizationTable(lastCalcCells, parseInt(this.value, 10) || 0);
+  });
 
-  /* Redraw when the window is resized, because the chart is measured in pixels. */
   var resizeTimer;
   window.addEventListener("resize", function () {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(render, 120);
+    resizeTimer = setTimeout(function () { if (state.activeTab === "graph") drawChart(); }, 120);
   });
 }
 
@@ -327,7 +339,6 @@ function clampLoan(raw) {
   return v;
 }
 
-/* Jump to a preset window like "last 5 years". */
 function applyPreset(years) {
   var lastDate = toDate(ROWS[ROWS.length - 1][0]);
   state.to = lastDate;
@@ -349,14 +360,12 @@ function syncDateInputs() {
   $("dateTo").value = isoOf(state.to);
 }
 
-/* Date object -> "YYYY-MM-DD" */
 function isoOf(d) {
   var m = String(d.getMonth() + 1).padStart(2, "0");
   var day = String(d.getDate()).padStart(2, "0");
   return d.getFullYear() + "-" + m + "-" + day;
 }
 
-/* Light up whichever preset chip matches the current range. */
 function markChips() {
   document.querySelectorAll(".chip").forEach(function (chip) {
     chip.setAttribute("aria-pressed", String(chip.dataset.years === state.preset));
@@ -380,12 +389,9 @@ function resetAll() {
   applyPreset("10");
 }
 
-/* == 5. RENDER ============================================================ */
+/* == 5. RENDER ============================================================= */
 
-/* The single place that redraws everything. Any control change ends here. */
 function render() {
-  /* Step 1: cut the full dataset down to the selected date range, and swap in
-     the smoothed values if the user asked for smoothing. */
   var smooth = SMOOTHED[state.window];
   var fromT = state.from.getTime();
   var toT = state.to.getTime();
@@ -394,18 +400,14 @@ function render() {
   for (var i = 0; i < ROWS.length; i++) {
     if (DATES[i] < fromT || DATES[i] > toT) continue;
     view.push({
-      date: ROWS[i][0],
-      t: DATES[i],
-      r30: smooth.r30[i],
-      r15: smooth.r15[i],
-      arm: smooth.arm[i],
-      /* keep the unsmoothed numbers too, for the table and the tooltip */
+      date: ROWS[i][0], t: DATES[i],
+      r30: smooth.r30[i], r15: smooth.r15[i], arm: smooth.arm[i],
       raw30: ROWS[i][1], raw15: ROWS[i][2], rawArm: ROWS[i][3]
     });
   }
 
   hoverIndex = -1;
-  drawChart();
+  if (state.activeTab === "graph") drawChart();
   renderLegend();
   renderTiles();
   renderInsights();
@@ -427,11 +429,10 @@ function updateChartSubtitle() {
     " to " + niceMonth(view.length ? view[view.length - 1].date : ROWS[ROWS.length - 1][0]);
 }
 
-/* == 6. THE CHART ========================================================= */
+/* == 6. THE CHART ========================================================== */
 
 var SVG_NS = "http://www.w3.org/2000/svg";
 
-/* A tiny helper so we are not repeating createElementNS everywhere. */
 function svgEl(tag, attrs) {
   var el = document.createElementNS(SVG_NS, tag);
   for (var k in attrs) el.setAttribute(k, attrs[k]);
@@ -440,17 +441,15 @@ function svgEl(tag, attrs) {
 
 function drawChart() {
   var svg = $("chart");
-  svg.textContent = "";               /* clear last frame */
+  svg.textContent = "";
 
   var series = activeSeries();
   var hasData = view.length > 0 && series.length > 0;
   $("chartEmpty").hidden = hasData;
   if (!hasData) { chartGeom = null; return; }
 
-  /* --- measurements ---------------------------------------------------- */
   var width = $("chartWrap").clientWidth || 800;
-  var height = width < 560 ? 300 : 400;
-  /* Margins leave room for axis labels on the left and end-labels on the right. */
+  var height = width < 560 ? 300 : (document.body.classList.contains("is-fullscreen") ? 460 : 400);
   var m = { top: 18, right: width < 560 ? 14 : 96, bottom: 30, left: 46 };
   var plotW = Math.max(10, width - m.left - m.right);
   var plotH = Math.max(10, height - m.top - m.bottom);
@@ -458,7 +457,6 @@ function drawChart() {
   svg.setAttribute("viewBox", "0 0 " + width + " " + height);
   svg.setAttribute("height", height);
 
-  /* --- work out the vertical scale ------------------------------------- */
   var lo = Infinity, hi = -Infinity;
   view.forEach(function (row) {
     series.forEach(function (s) {
@@ -470,7 +468,6 @@ function drawChart() {
   });
   if (lo === Infinity) { chartGeom = null; return; }
 
-  /* Add a little breathing room above and below the data. */
   var pad = Math.max(0.25, (hi - lo) * 0.12);
   var yMin = Math.max(0, lo - pad);
   var yMax = hi + pad;
@@ -479,7 +476,6 @@ function drawChart() {
   yMin = Math.min(yMin, ticks[0]);
   yMax = Math.max(yMax, ticks[ticks.length - 1]);
 
-  /* Scale functions: turn a data value into a pixel position. */
   function xOf(t) {
     var span = view[view.length - 1].t - view[0].t || 1;
     return m.left + (t - view[0].t) / span * plotW;
@@ -488,29 +484,18 @@ function drawChart() {
     return m.top + (yMax - v) / (yMax - yMin) * plotH;
   }
 
-  /* Remember these so the crosshair code can reuse them. */
   chartGeom = { m: m, width: width, height: height, plotW: plotW, plotH: plotH, xOf: xOf, yOf: yOf };
 
   var ink = { grid: token("--grid"), axis: token("--axis"), muted: token("--text-muted"), sec: token("--text-secondary"), surface: token("--surface-1") };
 
-  /* --- horizontal gridlines and the % labels down the left ------------- */
   ticks.forEach(function (tv) {
     var y = yOf(tv);
-    svg.appendChild(svgEl("line", {
-      x1: m.left, x2: m.left + plotW, y1: y, y2: y,
-      stroke: ink.grid, "stroke-width": 1
-    }));
-    var label = svgEl("text", {
-      x: m.left - 9, y: y + 4, "text-anchor": "end",
-      fill: ink.muted, "font-size": 11, "font-family": "system-ui, sans-serif"
-    });
+    svg.appendChild(svgEl("line", { x1: m.left, x2: m.left + plotW, y1: y, y2: y, stroke: ink.grid, "stroke-width": 1 }));
+    var label = svgEl("text", { x: m.left - 9, y: y + 4, "text-anchor": "end", fill: ink.muted, "font-size": 11, "font-family": "system-ui, sans-serif", "font-weight": 600 });
     label.textContent = tv.toFixed(tv % 1 === 0 ? 0 : 1) + "%";
     svg.appendChild(label);
   });
 
-  /* --- the year labels along the bottom -------------------------------- */
-  /* A range that starts mid-year can put its first two labels almost on top
-     of each other, so drop any tick sitting too close to the one before it. */
   var lastLabelX = -Infinity;
   var xTicks = pickYearTicks(view, width).filter(function (tick) {
     var x = xOf(tick.t);
@@ -520,68 +505,39 @@ function drawChart() {
   });
   xTicks.forEach(function (tick) {
     var x = xOf(tick.t);
-    svg.appendChild(svgEl("line", {
-      x1: x, x2: x, y1: m.top + plotH, y2: m.top + plotH + 4,
-      stroke: ink.axis, "stroke-width": 1
-    }));
-    var label = svgEl("text", {
-      x: x, y: m.top + plotH + 19, "text-anchor": "middle",
-      fill: ink.muted, "font-size": 11, "font-family": "system-ui, sans-serif"
-    });
+    svg.appendChild(svgEl("line", { x1: x, x2: x, y1: m.top + plotH, y2: m.top + plotH + 4, stroke: ink.axis, "stroke-width": 1 }));
+    var label = svgEl("text", { x: x, y: m.top + plotH + 19, "text-anchor": "middle", fill: ink.muted, "font-size": 11, "font-family": "system-ui, sans-serif", "font-weight": 600 });
     label.textContent = tick.label;
     svg.appendChild(label);
   });
 
-  /* the solid baseline under the plot */
-  svg.appendChild(svgEl("line", {
-    x1: m.left, x2: m.left + plotW, y1: m.top + plotH, y2: m.top + plotH,
-    stroke: ink.axis, "stroke-width": 1
-  }));
+  svg.appendChild(svgEl("line", { x1: m.left, x2: m.left + plotW, y1: m.top + plotH, y2: m.top + plotH, stroke: ink.axis, "stroke-width": 2 }));
 
-  /* --- history markers (drawn behind the data lines) ------------------- */
   if (state.showEvents) drawEventMarkers(svg, xOf, m, plotH, ink);
 
-  /* --- the data lines themselves --------------------------------------- */
   series.forEach(function (s) {
-    var d = "";
-    var pen = false;   /* false means "lift the pen": we hit a gap in the data */
+    var d = "", pen = false;
     view.forEach(function (row) {
       var v = row[s.key];
       if (v == null) { pen = false; return; }
-      var cmd = pen ? "L" : "M";
-      d += cmd + xOf(row.t).toFixed(1) + " " + yOf(v).toFixed(1) + " ";
+      d += (pen ? "L" : "M") + xOf(row.t).toFixed(1) + " " + yOf(v).toFixed(1) + " ";
       pen = true;
     });
     if (!d) return;
-
     svg.appendChild(svgEl("path", {
-      d: d, fill: "none",
-      stroke: token(s.color),
-      "stroke-width": 2,
-      "stroke-linejoin": "round",
-      "stroke-linecap": "round",
-      "stroke-dasharray": s.dash    /* dashes are a second cue besides color */
+      d: d, fill: "none", stroke: token(s.color), "stroke-width": 2.5,
+      "stroke-linejoin": "round", "stroke-linecap": "round", "stroke-dasharray": s.dash
     }));
   });
 
-  /* --- direct labels at the right end of each line --------------------- */
   if (m.right > 40) drawEndLabels(svg, series, xOf, yOf, m, plotW);
 
-  /* --- the invisible layer that catches mouse movement ----------------- */
-  var hit = svgEl("rect", {
-    x: m.left, y: m.top, width: plotW, height: plotH,
-    fill: "transparent", style: "cursor:crosshair"
-  });
+  var hit = svgEl("rect", { x: m.left, y: m.top, width: plotW, height: plotH, fill: "transparent", style: "cursor:crosshair" });
   svg.appendChild(hit);
-
-  /* Groups the crosshair will fill in later. Created now so they always sit
-     on top of the lines. */
   svg.appendChild(svgEl("g", { id: "crosshairLayer" }));
-
   attachHover(svg, hit);
 }
 
-/* Choose round-number gridline values, like 4, 5, 6, 7 rather than 4.17, 5.33. */
 function niceTicks(min, max, target) {
   var span = max - min || 1;
   var rough = span / target;
@@ -599,14 +555,12 @@ function niceTicks(min, max, target) {
   return out.length ? out : [min, max];
 }
 
-/* Pick which years to label along the bottom, so labels never overlap. */
 function pickYearTicks(rows, width) {
   var firstYear = toDate(rows[0].date).getFullYear();
   var lastYear = toDate(rows[rows.length - 1].date).getFullYear();
   var years = lastYear - firstYear;
   var maxLabels = Math.max(3, Math.floor(width / 95));
 
-  /* If the window is short, label months instead of years. */
   if (years <= 2) {
     var out = [], seen = {};
     var stride = Math.max(1, Math.ceil(rows.length / maxLabels));
@@ -620,12 +574,10 @@ function pickYearTicks(rows, width) {
   }
 
   var step = Math.max(1, Math.ceil(years / maxLabels));
-  /* round the step up to a friendly 1 / 2 / 5 / 10 / 20 */
   [1, 2, 5, 10, 20, 25, 50].some(function (n) { if (n >= step) { step = n; return true; } return false; });
 
   var ticks = [];
   for (var y = Math.ceil(firstYear / step) * step; y <= lastYear; y += step) {
-    /* find the first row in that year */
     for (var j = 0; j < rows.length; j++) {
       if (toDate(rows[j].date).getFullYear() === y) { ticks.push({ t: rows[j].t, label: String(y) }); break; }
     }
@@ -633,12 +585,9 @@ function pickYearTicks(rows, width) {
   return ticks.length ? ticks : [{ t: rows[0].t, label: String(firstYear) }];
 }
 
-/* Write each series' name at the right-hand end of its own line, so the
-   reader never has to bounce between a legend and the chart. */
 function drawEndLabels(svg, series, xOf, yOf, m, plotW) {
   var labels = [];
   series.forEach(function (s) {
-    /* walk backwards to find the last week this series actually has a value */
     for (var i = view.length - 1; i >= 0; i--) {
       if (view[i][s.key] != null) {
         labels.push({ y: yOf(view[i][s.key]), x: xOf(view[i].t), name: s.name, color: token(s.color), val: view[i][s.key] });
@@ -647,56 +596,34 @@ function drawEndLabels(svg, series, xOf, yOf, m, plotW) {
     }
   });
 
-  /* If two labels would sit on top of each other, nudge them apart. */
   labels.sort(function (a, b) { return a.y - b.y; });
   for (var i = 1; i < labels.length; i++) {
     if (labels[i].y - labels[i - 1].y < 26) labels[i].y = labels[i - 1].y + 26;
   }
 
   labels.forEach(function (L) {
-    /* a short connector so a nudged label still points at its line */
-    svg.appendChild(svgEl("line", {
-      x1: L.x + 2, x2: m.left + plotW + 7, y1: yOf(L.val), y2: L.y - 3,
-      stroke: L.color, "stroke-width": 1, opacity: 0.45
-    }));
-    var name = svgEl("text", {
-      x: m.left + plotW + 10, y: L.y - 3,
-      fill: token("--text-secondary"), "font-size": 11, "font-family": "system-ui, sans-serif"
-    });
+    svg.appendChild(svgEl("line", { x1: L.x + 2, x2: m.left + plotW + 7, y1: yOf(L.val), y2: L.y - 3, stroke: L.color, "stroke-width": 1, opacity: 0.45 }));
+    var name = svgEl("text", { x: m.left + plotW + 10, y: L.y - 3, fill: token("--text-secondary"), "font-size": 11, "font-family": "system-ui, sans-serif", "font-weight": 700 });
     name.textContent = L.name;
     svg.appendChild(name);
-
-    var val = svgEl("text", {
-      x: m.left + plotW + 10, y: L.y + 10,
-      fill: L.color, "font-size": 12, "font-weight": 650, "font-family": "system-ui, sans-serif"
-    });
+    var val = svgEl("text", { x: m.left + plotW + 10, y: L.y + 10, fill: L.color, "font-size": 12, "font-weight": 800, "font-family": "system-ui, sans-serif" });
     val.textContent = L.val.toFixed(2) + "%";
     svg.appendChild(val);
   });
 }
 
-/* Thin dashed verticals marking the curated history moments. */
 function drawEventMarkers(svg, xOf, m, plotH, ink) {
   var placed = [];
   eventsInView().forEach(function (ev) {
     var t = toDate(ev.date).getTime();
     var x = xOf(t);
-    /* skip a marker that would be printed on top of a previous one */
     if (placed.some(function (px) { return Math.abs(px - x) < 26; })) return;
     placed.push(x);
-
-    svg.appendChild(svgEl("line", {
-      x1: x, x2: x, y1: m.top + 6, y2: m.top + plotH,
-      stroke: ink.axis, "stroke-width": 1, "stroke-dasharray": "3 4"
-    }));
-    svg.appendChild(svgEl("circle", {
-      cx: x, cy: m.top + 6, r: 3.5,
-      fill: ink.surface, stroke: ink.sec, "stroke-width": 1.5
-    }));
+    svg.appendChild(svgEl("line", { x1: x, x2: x, y1: m.top + 6, y2: m.top + plotH, stroke: ink.axis, "stroke-width": 1, "stroke-dasharray": "3 4" }));
+    svg.appendChild(svgEl("circle", { cx: x, cy: m.top + 6, r: 3.5, fill: ink.surface, stroke: ink.sec, "stroke-width": 1.5 }));
   });
 }
 
-/* Which history notes fall inside the visible date range? */
 function eventsInView() {
   if (!view.length) return [];
   var a = view[0].t, b = view[view.length - 1].t;
@@ -706,19 +633,16 @@ function eventsInView() {
   });
 }
 
-/* == 7. HOVER CROSSHAIR =================================================== */
+/* == 7. HOVER CROSSHAIR ==================================================== */
 
 function attachHover(svg, hit) {
-  /* Mouse and touch both report through pointer events. */
   hit.addEventListener("pointermove", function (e) {
     var box = svg.getBoundingClientRect();
-    /* convert the screen position into the SVG's own coordinate system */
     var x = (e.clientX - box.left) * (chartGeom.width / box.width);
     setHover(nearestIndex(x));
   });
   hit.addEventListener("pointerleave", function () { setHover(-1); });
 
-  /* Keyboard users tab to the chart and walk it with the arrow keys. */
   svg.setAttribute("tabindex", "0");
   svg.addEventListener("keydown", function (e) {
     if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
@@ -729,7 +653,6 @@ function attachHover(svg, hit) {
   svg.addEventListener("blur", function () { setHover(-1); });
 }
 
-/* Which week is closest to this horizontal pixel position? */
 function nearestIndex(px) {
   var best = 0, bestDist = Infinity;
   for (var i = 0; i < view.length; i++) {
@@ -752,31 +675,19 @@ function setHover(i) {
   var x = chartGeom.xOf(row.t);
   var m = chartGeom.m;
 
-  /* the vertical hairline */
-  layer.appendChild(svgEl("line", {
-    x1: x, x2: x, y1: m.top, y2: m.top + chartGeom.plotH,
-    stroke: token("--text-muted"), "stroke-width": 1
-  }));
+  layer.appendChild(svgEl("line", { x1: x, x2: x, y1: m.top, y2: m.top + chartGeom.plotH, stroke: token("--text-muted"), "stroke-width": 1 }));
 
-  /* a dot on every visible line at that week */
   var rows = [];
   activeSeries().forEach(function (s) {
     var v = row[s.key];
     if (v == null) return;
-    layer.appendChild(svgEl("circle", {
-      cx: x, cy: chartGeom.yOf(v), r: 4.5,
-      fill: token(s.color),
-      stroke: token("--surface-1"), "stroke-width": 2   /* the 2px ring keeps overlapping dots readable */
-    }));
+    layer.appendChild(svgEl("circle", { cx: x, cy: chartGeom.yOf(v), r: 5, fill: token(s.color), stroke: token("--surface-1"), "stroke-width": 2.5 }));
     rows.push({ name: s.name, color: token(s.color), value: v });
   });
 
   showTooltip(row, rows, x);
 }
 
-/* Build the little floating box of numbers. Text is inserted with
-   textContent rather than innerHTML, which keeps any stray characters in a
-   label from being treated as page markup. */
 function showTooltip(row, rows, x) {
   var tip = $("chartTip");
   tip.textContent = "";
@@ -797,31 +708,25 @@ function showTooltip(row, rows, x) {
   rows.forEach(function (r) {
     var line = document.createElement("div");
     line.className = "tt-row";
-
     var key = document.createElement("span");
     key.className = "tt-key";
     key.style.background = r.color;
     line.appendChild(key);
-
-    /* value first and bold - the reader already knows which series they want */
     var val = document.createElement("span");
     val.className = "tt-val";
     val.textContent = r.value.toFixed(2) + "%";
     line.appendChild(val);
-
     var name = document.createElement("span");
     name.className = "tt-name";
     name.textContent = r.name;
     line.appendChild(name);
-
     tip.appendChild(line);
   });
 
-  /* If a history marker is within a few weeks, show its note too. */
   if (state.showEvents) {
     var near = eventsInView().find(function (ev) {
       var diff = Math.abs(toDate(ev.date).getTime() - row.t);
-      return diff < 1000 * 60 * 60 * 24 * 21;    /* within 3 weeks */
+      return diff < 1000 * 60 * 60 * 24 * 21;
     });
     if (near) {
       var box = document.createElement("div");
@@ -835,7 +740,6 @@ function showTooltip(row, rows, x) {
 
   tip.hidden = false;
 
-  /* Place it beside the hairline, flipping to the other side near the edge. */
   var wrapW = $("chartWrap").clientWidth;
   var scale = wrapW / chartGeom.width;
   var px = x * scale;
@@ -844,7 +748,7 @@ function showTooltip(row, rows, x) {
   tip.style.top = "16px";
 }
 
-/* == 8. LEGEND, TILES, INSIGHTS, TABLE, CALCULATOR ======================== */
+/* == 8. LEGEND, TILES, INSIGHTS, HISTORY, TABLE ============================ */
 
 function renderLegend() {
   var box = $("legend");
@@ -852,21 +756,17 @@ function renderLegend() {
   activeSeries().forEach(function (s) {
     var item = document.createElement("span");
     item.className = "legend-item";
-
     var line = document.createElement("span");
     line.className = "legend-line";
     line.style.background = token(s.color);
     item.appendChild(line);
-
     var label = document.createElement("span");
     label.textContent = s.name;
     item.appendChild(label);
-
     box.appendChild(item);
   });
 }
 
-/* Pull out just the 30-year values that exist in the current range. */
 function thirtyYearInView() {
   return view.filter(function (r) { return r.r30 != null; });
 }
@@ -903,14 +803,12 @@ function renderTiles() {
   $("tAvgNote").textContent = pts.length.toLocaleString("en-US") + " weeks measured";
 }
 
-/* Write the plain-English observations. Every sentence is computed, never
-   hard-coded, so it is always true of whatever is on screen. */
 function renderInsights() {
   var list = $("insights");
   list.textContent = "";
   var pts = thirtyYearInView();
   if (pts.length < 2) {
-    addInsight(list, "Pick a wider time range to see calculated observations here.");
+    addInsight(list, "Pick a wider time range in <strong>0 &middot; Controls</strong> to see calculated observations here.");
     return;
   }
 
@@ -921,14 +819,12 @@ function renderInsights() {
   var avg = pts.reduce(function (s, r) { return s + r.r30; }, 0) / pts.length;
   var years = (last.t - first.t) / (365.25 * 24 * 3600 * 1000);
 
-  /* 1. The direction of travel. */
   var dir = change > 0.05 ? "rose" : change < -0.05 ? "fell" : "barely moved";
   addInsight(list,
     "Across these <strong>" + years.toFixed(1) + " years</strong>, the 30-year rate " + dir +
     " from <strong>" + pct(first.r30) + "</strong> to <strong>" + pct(last.r30) + "</strong>" +
     (Math.abs(change) > 0.05 ? ", a move of <strong>" + Math.abs(change).toFixed(2) + " percentage points</strong>." : "."));
 
-  /* 2. The spread between best and worst week. */
   addInsight(list,
     "The gap between the cheapest week (<strong>" + pct(low.r30) + "</strong>, " + niceMonth(low.date) +
     ") and the dearest (<strong>" + pct(high.r30) + "</strong>, " + niceMonth(high.date) +
@@ -936,14 +832,12 @@ function renderInsights() {
     money(monthlyPayment(300000, high.r30, 30) - monthlyPayment(300000, low.r30, 30)) +
     " a month</strong> in difference for the same house.");
 
-  /* 3. Where today sits against this range's own average. */
   var vsAvg = last.r30 - avg;
   addInsight(list,
     "The latest reading is <strong>" + Math.abs(vsAvg).toFixed(2) + " points " +
     (vsAvg >= 0 ? "above" : "below") + "</strong> the average for this window (" + pct(avg) +
     "). Whether a rate feels 'high' depends entirely on which window you compare it to.");
 
-  /* 4. Where today sits against the entire 55-year record. */
   var all = ROWS.filter(function (r) { return r[1] != null; }).map(function (r) { return r[1]; });
   var below = all.filter(function (v) { return v < last.r30; }).length;
   var rank = Math.round(below / all.length * 100);
@@ -952,7 +846,6 @@ function renderInsights() {
     " is higher than <strong>" + rank + "%</strong> of them. The full-history average is <strong>7.68%</strong>" +
     (last.r30 < 7.68 ? ", so by the long view today is still on the cheap side." : "."));
 
-  /* 5. Volatility: the single biggest one-week move in the range. */
   var jump = null;
   for (var i = 1; i < pts.length; i++) {
     var d = pts[i].r30 - pts[i - 1].r30;
@@ -965,7 +858,6 @@ function renderInsights() {
       ". Sudden steps like this are why analysts smooth their data before reading a trend.");
   }
 
-  /* 6. The 30-vs-15 gap, when both lines are showing. */
   if (state.visible.r30 && state.visible.r15) {
     var both = view.filter(function (r) { return r.r30 != null && r.r15 != null; });
     if (both.length) {
@@ -976,7 +868,6 @@ function renderInsights() {
     }
   }
 
-  /* 7. A note about the missing ARM data, when relevant. */
   if (state.visible.arm) {
     var armPts = view.filter(function (r) { return r.arm != null; });
     if (!armPts.length) {
@@ -990,7 +881,7 @@ function renderInsights() {
 function addInsight(list, html) {
   var li = document.createElement("li");
   var span = document.createElement("span");
-  span.innerHTML = html;       /* only our own strings above reach this */
+  span.innerHTML = html;
   li.appendChild(span);
   list.appendChild(li);
 }
@@ -1003,7 +894,7 @@ function renderEvents() {
   if (!evs.length) {
     var p = document.createElement("p");
     p.className = "events-empty";
-    p.textContent = "No marked events fall inside this window. Try widening the time range.";
+    p.textContent = "No marked events fall inside this window. Try widening the time range in 0 · Controls.";
     box.appendChild(p);
     return;
   }
@@ -1011,28 +902,22 @@ function renderEvents() {
   evs.forEach(function (ev) {
     var card = document.createElement("div");
     card.className = "event";
-
     var when = document.createElement("div");
     when.className = "event-when";
     when.textContent = niceDate(ev.date);
     card.appendChild(when);
-
     var title = document.createElement("div");
     title.className = "event-title";
     title.textContent = ev.title;
     card.appendChild(title);
-
     var text = document.createElement("p");
     text.className = "event-text";
-    text.textContent = ev.text;
+    text.innerHTML = wrapTerms(ev.text);   /* our own authored copy - safe to inject */
     card.appendChild(text);
-
     box.appendChild(card);
   });
 }
 
-/* The table view. It lists the raw weekly numbers, newest first, so the
-   values in the chart are always reachable as plain text too. */
 function renderTable() {
   if (!state.showTable) return;
   var head = $("tableHead"), body = $("tableBody");
@@ -1048,15 +933,12 @@ function renderTable() {
   });
   head.appendChild(tr);
 
-  /* Show the most recent 300 weeks - enough to browse, not enough to choke
-     the browser on a 55-year selection. The CSV download has everything. */
   var rows = view.slice().reverse().slice(0, 300);
   rows.forEach(function (r) {
     var row = document.createElement("tr");
     var td = document.createElement("td");
     td.textContent = niceDate(r.date);
     row.appendChild(td);
-
     activeSeries().forEach(function (s) {
       var cell = document.createElement("td");
       var v = r[s.key];
@@ -1070,18 +952,22 @@ function renderTable() {
     ? "Smoothed values (" + (state.window === 13 ? "3-month" : "1-year") + " moving average), newest first."
     : "Raw weekly survey values, newest first.";
   $("tableFoot").textContent = view.length > 300
-    ? "Showing the most recent 300 of " + view.length.toLocaleString("en-US") +
-      " weeks in this range. Use Download CSV for the complete set."
+    ? "Showing the most recent 300 of " + view.length.toLocaleString("en-US") + " weeks in this range. Use Download CSV for the complete set."
     : "Showing all " + view.length.toLocaleString("en-US") + " weeks in this range.";
 }
 
-/* The payment calculator: the same loan priced at four different rates. */
+/* == 9. CALCULATOR + AMORTIZATION ========================================== */
+
 function renderCalculator() {
   var box = $("calcResults");
   box.textContent = "";
   var loan = clampLoan($("loanAmt").value);
+  $("calcNote").innerHTML = wrapTerms(
+    "Every payment below is for a 30-year loan and covers only principal and interest — not property taxes or insurance."
+  );
+
   var pts = thirtyYearInView();
-  if (!pts.length) { $("calcLesson").textContent = ""; return; }
+  if (!pts.length) { $("calcLesson").textContent = ""; lastCalcCells = []; $("amortRateSelect").innerHTML = ""; return; }
 
   var last = pts[pts.length - 1];
   var high = pts.reduce(function (a, b) { return b.r30 > a.r30 ? b : a; });
@@ -1094,6 +980,7 @@ function renderCalculator() {
     { label: "All-time low", rate: 2.65, when: "Jan 2021" },
     { label: "All-time high", rate: 18.63, when: "Oct 1981" }
   ];
+  lastCalcCells = cells;
 
   cells.forEach(function (c) {
     var pay = monthlyPayment(loan, c.rate, 30);
@@ -1101,36 +988,29 @@ function renderCalculator() {
 
     var cell = document.createElement("div");
     cell.className = "calc-cell";
-
     var lab = document.createElement("div");
     lab.className = "calc-cell-label";
     lab.textContent = c.label;
     cell.appendChild(lab);
-
     var rate = document.createElement("div");
     rate.className = "calc-cell-rate";
     rate.textContent = c.rate.toFixed(2) + "% · " + c.when;
     cell.appendChild(rate);
-
     var val = document.createElement("div");
     val.className = "calc-cell-value";
     val.textContent = money(pay) + "/mo";
     cell.appendChild(val);
-
     var sub = document.createElement("div");
     sub.className = "calc-cell-sub";
     sub.textContent = bigMoney(totalInterest) + " interest over 30 years";
     cell.appendChild(sub);
-
     box.appendChild(cell);
   });
 
-  /* One sentence tying the numbers together. */
   var payNow = monthlyPayment(loan, last.r30, 30);
   var payLow = monthlyPayment(loan, low.r30, 30);
   var gap = payNow - payLow;
   var lesson = $("calcLesson");
-  lesson.textContent = "";
 
   if (Math.abs(gap) < 1) {
     lesson.innerHTML = "At " + pct(last.r30) + ", borrowing " + money(loan) +
@@ -1142,12 +1022,119 @@ function renderCalculator() {
       " every month</strong>, or <strong>" + bigMoney(Math.abs(gap) * 360) +
       "</strong> across the full 30 years. That is what a couple of percentage points is really worth.";
   }
+
+  /* Rebuild the amortization scenario dropdown, keeping the same selection
+     if it is still valid, then redraw the schedule for whatever is chosen. */
+  var sel = $("amortRateSelect");
+  var prevIndex = sel.selectedIndex;
+  sel.innerHTML = "";
+  cells.forEach(function (c, i) {
+    var opt = document.createElement("option");
+    opt.value = String(i);
+    opt.textContent = c.label + " (" + c.rate.toFixed(2) + "%)";
+    sel.appendChild(opt);
+  });
+  sel.selectedIndex = (prevIndex >= 0 && prevIndex < cells.length) ? prevIndex : 0;
+
+  $("amortTitle").innerHTML = wrapTerms("The amortization table");
+  $("amortSub").innerHTML = wrapTerms("Every one of your 360 monthly payments, added up year by year, for the loan amount above.");
+
+  renderAmortizationTable(cells, sel.selectedIndex);
 }
 
-/* == 9. THEME, CSV, TOUR ================================================== */
+/* Build a year-by-year payoff schedule: for every month, work out how much
+   of that month's fixed payment covers interest versus how much actually
+   shrinks the balance, then add the 12 months of each year together. */
+function amortizationSchedule(principal, annualRate, years) {
+  var pay = monthlyPayment(principal, annualRate, years);
+  var monthlyRate = annualRate / 100 / 12;
+  var balance = principal;
+  var rows = [];
+  var yearPrincipal = 0, yearInterest = 0, startBalance = balance;
 
-/* Theme switching. The chosen mode is written onto the <html> element and
-   remembered in the browser so it survives a refresh. */
+  for (var mo = 1; mo <= years * 12; mo++) {
+    var interest = balance * monthlyRate;
+    var principalPaid = pay - interest;
+    balance = Math.max(0, balance - principalPaid);
+    yearPrincipal += principalPaid;
+    yearInterest += interest;
+    if (mo % 12 === 0 || mo === years * 12) {
+      rows.push({ year: Math.ceil(mo / 12), start: startBalance, principal: yearPrincipal, interest: yearInterest, end: balance });
+      startBalance = balance; yearPrincipal = 0; yearInterest = 0;
+    }
+  }
+  return { payment: pay, rows: rows };
+}
+
+function renderAmortizationTable(cells, index) {
+  var body = $("amortBody");
+  body.textContent = "";
+  if (!cells || !cells.length) { $("amortLesson").textContent = ""; return; }
+
+  var scenario = cells[index] || cells[0];
+  var loan = clampLoan($("loanAmt").value);
+  var sched = amortizationSchedule(loan, scenario.rate, 30);
+
+  sched.rows.forEach(function (r) {
+    var tr = document.createElement("tr");
+    [String(r.year), money(r.start), money(r.interest), money(r.principal), money(r.end)].forEach(function (val, i) {
+      var td = document.createElement("td");
+      td.textContent = val;
+      if (i === 0) td.style.textAlign = "left";
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+
+  var first = sched.rows[0], last = sched.rows[sched.rows.length - 1];
+  $("amortLesson").innerHTML = wrapTerms(
+    "This is what amortization means: in Year 1, " + money(first.interest) + " of your payments is interest and only " +
+    money(first.principal) + " actually shrinks the loan. By Year " + last.year + ", that flips — " +
+    money(last.principal) + " goes to principal and just " + money(last.interest) + " is interest. Early payments are " +
+    "mostly the cost of borrowing; late payments are mostly paying the loan off."
+  );
+}
+
+/* == 10. GLOSSARY / WORD BANK =============================================== */
+
+function renderGlossary() {
+  var list = $("glossaryList");
+  var jump = $("glossaryJump");
+  list.textContent = "";
+  jump.textContent = "";
+
+  var seenLetters = {};
+  GLOSSARY_ORDER.forEach(function (key) {
+    var entry = GLOSSARY[key];
+    var letter = entry.label.charAt(0).toUpperCase();
+
+    var row = document.createElement("div");
+    row.className = "gloss-entry";
+    row.id = "term-" + key;
+    var term = document.createElement("div");
+    term.className = "gloss-term";
+    term.innerHTML = '<span class="gloss-letter">' + letter + "</span>" + entry.label.slice(1);
+    row.appendChild(term);
+    var def = document.createElement("div");
+    def.className = "gloss-def";
+    def.textContent = entry.def;
+    row.appendChild(def);
+    list.appendChild(row);
+
+    if (!seenLetters[letter]) {
+      seenLetters[letter] = true;
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "jump-btn";
+      btn.textContent = letter;
+      btn.addEventListener("click", function () { row.scrollIntoView({ behavior: "smooth", block: "start" }); });
+      jump.appendChild(btn);
+    }
+  });
+}
+
+/* == 11. THEME, FULL SCREEN, CSV, TOOLTIPS, TOUR ============================ */
+
 function setupTheme() {
   var saved = null;
   try { saved = localStorage.getItem("mre-theme"); } catch (e) { /* private mode */ }
@@ -1156,15 +1143,13 @@ function setupTheme() {
   document.querySelectorAll("[data-theme-choice]").forEach(function (btn) {
     btn.addEventListener("click", function () {
       applyTheme(btn.dataset.themeChoice);
-      /* The chart's colors come from CSS tokens, so it must be redrawn. */
-      if (ROWS.length) render();
+      if (ROWS.length && state.activeTab === "graph") drawChart();
     });
   });
 
-  /* If the user is on "Auto", follow the device when it flips. */
   if (window.matchMedia) {
     window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () {
-      if (document.documentElement.dataset.theme === undefined && ROWS.length) render();
+      if (document.documentElement.dataset.theme === undefined && ROWS.length && state.activeTab === "graph") drawChart();
     });
   }
 }
@@ -1182,25 +1167,49 @@ function applyTheme(mode) {
   });
 }
 
-/* Save the current selection as a spreadsheet file. */
+/* Full Screen: asks the browser to hide its own chrome so the tool fills
+   the display. Some browsers block this unless it is triggered directly by
+   a click, and some (like an embedded preview frame) forbid it outright -
+   both cases are handled quietly rather than showing a scary error. */
+function setupFullscreen() {
+  var btn = $("fullscreenBtn");
+  var supported = !!(document.documentElement.requestFullscreen || document.exitFullscreen);
+  if (!supported) {
+    btn.disabled = true;
+    btn.dataset.tip = "Your browser does not support full screen mode here.";
+    return;
+  }
+
+  btn.addEventListener("click", function () {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(function () { /* blocked - ignore quietly */ });
+    } else {
+      document.exitFullscreen();
+    }
+  });
+
+  document.addEventListener("fullscreenchange", function () {
+    var on = !!document.fullscreenElement;
+    btn.setAttribute("aria-pressed", String(on));
+    btn.querySelector(".seg-label").textContent = on ? "Exit Full Screen" : "Full Screen";
+    document.body.classList.toggle("is-fullscreen", on);
+    if (ROWS.length && state.activeTab === "graph") drawChart();
+  });
+}
+
 function downloadCSV() {
   var series = activeSeries();
   var lines = ["Week," + series.map(function (s) { return '"' + s.name + '"'; }).join(",")];
 
   view.forEach(function (r) {
     var cells = [r.date];
-    series.forEach(function (s) {
-      cells.push(r[s.key] == null ? "" : r[s.key].toFixed(2));
-    });
+    series.forEach(function (s) { cells.push(r[s.key] == null ? "" : r[s.key].toFixed(2)); });
     lines.push(cells.join(","));
   });
 
-  var note = state.window > 1
-    ? "# values are a " + state.window + "-week moving average"
-    : "# raw weekly values";
+  var note = state.window > 1 ? "# values are a " + state.window + "-week moving average" : "# raw weekly values";
   var csv = "# Freddie Mac Primary Mortgage Market Survey\n" + note + "\n" + lines.join("\n");
 
-  /* Turn the text into a file the browser can download. */
   var blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   var url = URL.createObjectURL(blob);
   var a = document.createElement("a");
@@ -1212,8 +1221,8 @@ function downloadCSV() {
   URL.revokeObjectURL(url);
 }
 
-/* The shared "?" tooltip bubble. One bubble is reused by every button, which
-   is far lighter than giving each one its own hidden element. */
+/* The shared "?" tooltip bubble - reused by every "?" button AND every
+   highlighted Word Bank term, since both just carry a [data-tip]. */
 function setupTooltips() {
   var bubble = $("tipbubble");
 
@@ -1225,7 +1234,6 @@ function setupTooltips() {
 
     var r = el.getBoundingClientRect();
     var w = bubble.offsetWidth, h = bubble.offsetHeight;
-    /* prefer below-and-centred, but stay on screen */
     var left = Math.min(window.innerWidth - w - 10, Math.max(10, r.left + r.width / 2 - w / 2));
     var top = r.bottom + 8;
     if (top + h > window.innerHeight - 10) top = r.top - h - 8;
@@ -1234,8 +1242,6 @@ function setupTooltips() {
   }
   function hide() { bubble.hidden = true; }
 
-  /* Delegation: one set of listeners on the document handles every [data-tip]
-     element, including ones added later. */
   document.addEventListener("pointerover", function (e) {
     var el = e.target.closest("[data-tip]");
     if (el) show(el);
@@ -1252,11 +1258,15 @@ function setupTooltips() {
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") hide(); });
 }
 
-/* The guided tour: a dimming overlay with a hole cut around one element. */
+/* The guided tour: a dimming overlay with a hole cut around one element.
+   Every step lives on chrome that is visible from any tab, so the tour
+   never has to switch tabs on the learner's behalf - it just points, and
+   lets them click. */
 var tourAt = 0;
 
 function setupTour() {
-  $("tourBtn").addEventListener("click", function () { startTour(); });
+  $("tourBtn").addEventListener("click", startTour);
+  $("tourBtn2").addEventListener("click", startTour);
   $("tourNext").addEventListener("click", function () { stepTour(1); });
   $("tourPrev").addEventListener("click", function () { stepTour(-1); });
   $("tourSkip").addEventListener("click", endTour);
@@ -1267,10 +1277,9 @@ function setupTour() {
     if (e.key === "ArrowLeft") stepTour(-1);
   });
 
-  /* Offer the tour automatically the first time somebody visits. */
   var seen = null;
   try { seen = localStorage.getItem("mre-tour"); } catch (e) { /* ignore */ }
-  if (!seen) setTimeout(function () { startTour(); }, 700);
+  if (!seen) setTimeout(startTour, 700);
 }
 
 function startTour() {
@@ -1293,7 +1302,6 @@ function showTourStep() {
 
   target.scrollIntoView({ block: "center", behavior: "smooth" });
 
-  /* Wait for the scroll to settle before measuring, or the hole lands wrong. */
   setTimeout(function () {
     var r = target.getBoundingClientRect();
     var pad = 8;
@@ -1309,7 +1317,6 @@ function showTourStep() {
     $("tourPrev").disabled = tourAt === 0;
     $("tourNext").textContent = tourAt === TOUR.length - 1 ? "Finish" : "Next";
 
-    /* Put the dialog under the highlight, or above it if there is no room. */
     var box = $("tourBox");
     var bh = box.offsetHeight, bw = box.offsetWidth;
     var top = r.bottom + 16;

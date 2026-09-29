@@ -11,9 +11,9 @@
 <body>
 
 <!-- ============================================================
-     HEADER: the bar at the very top of the page. It holds the
-     app name, the data source, and the buttons for switching
-     color themes and starting the guided tour.
+     HEADER: title on the left. On the right: a small "Tour"
+     restart button, the light/dark/auto theme switch, and the
+     Full Screen button (kept right-most, as asked).
      ============================================================ -->
 <header class="topbar">
   <div class="topbar-inner">
@@ -26,256 +26,339 @@
     </div>
 
     <div class="topbar-actions">
-      <!-- Guided tour button: walks a first-time user through the page -->
-      <button id="tourBtn" class="btn btn-accent" type="button">Guided tour</button>
+      <button id="tourBtn" class="btn btn-accent" type="button">Take the Tour</button>
 
-      <!-- Theme switch: three buttons that change the page colors.
-           "Auto" means "match whatever my computer is set to". -->
       <div class="segmented" role="group" aria-label="Color theme">
         <button type="button" class="seg-btn" data-theme-choice="light" title="Light theme"><span aria-hidden="true">&#9728;</span><span class="seg-label">Light</span></button>
         <button type="button" class="seg-btn" data-theme-choice="dark" title="Dark theme"><span aria-hidden="true">&#9790;</span><span class="seg-label">Dark</span></button>
         <button type="button" class="seg-btn" data-theme-choice="system" title="Match my device"><span aria-hidden="true">&#9680;</span><span class="seg-label">Auto</span></button>
       </div>
+
+      <button id="fullscreenBtn" class="btn btn-ghost btn-fullscreen" type="button" data-tip="Hide your browser's toolbar so the tool fills the whole screen. Press it again (or Esc) to go back.">
+        <span aria-hidden="true">&#10021;</span><span class="seg-label">Full Screen</span>
+      </button>
     </div>
   </div>
 </header>
 
+<!-- ============================================================
+     FILTERS BAR: labeled "0 · Controls" - a neutral badge, not a
+     bright one, because this is a tool you use on every tab, not
+     a chapter of its own. It stays visible no matter which tab
+     you're reading, because it scopes every one of them.
+     ============================================================ -->
+<section class="filtersbar" id="filtersBar" aria-label="Filters">
+  <div class="section-badge badge-neutral">
+    <span class="badge-num">0</span><span class="badge-title">Controls</span>
+  </div>
+
+  <div class="control-group" id="ctlRange">
+    <span class="control-label">
+      Time range
+      <button class="tip" type="button" aria-label="What is this?" data-tip="Pick how far back in time to look. &quot;All&quot; shows every week since 1971. Shorter ranges zoom in so recent changes are easier to see."></button>
+    </span>
+    <div class="chips" role="group" aria-label="Time range presets">
+      <button type="button" class="chip" data-years="1">1Y</button>
+      <button type="button" class="chip" data-years="5">5Y</button>
+      <button type="button" class="chip" data-years="10">10Y</button>
+      <button type="button" class="chip" data-years="20">20Y</button>
+      <button type="button" class="chip" data-years="all">All</button>
+    </div>
+    <div class="custom-range">
+      <label class="mini">From <input type="date" id="dateFrom"></label>
+      <label class="mini">To <input type="date" id="dateTo"></label>
+    </div>
+  </div>
+
+  <div class="control-group" id="ctlSeries">
+    <span class="control-label">
+      Loan types
+      <button class="tip" type="button" aria-label="What is this?" data-tip="Each line is a different kind of home loan. Tick a box to add its line to the chart, untick to hide it."></button>
+    </span>
+    <div class="checks">
+      <label class="check">
+        <input type="checkbox" id="sr30" checked>
+        <span class="swatch swatch-1" aria-hidden="true"></span>
+        <span>30-year fixed</span>
+      </label>
+      <label class="check">
+        <input type="checkbox" id="sr15" checked>
+        <span class="swatch swatch-2" aria-hidden="true"></span>
+        <span>15-year fixed</span>
+      </label>
+      <label class="check">
+        <input type="checkbox" id="sarm">
+        <span class="swatch swatch-3" aria-hidden="true"></span>
+        <span>5/1 ARM</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="control-group" id="ctlSmooth">
+    <label class="control-label" for="smoothSel">
+      Smoothing
+      <button class="tip" type="button" aria-label="What is this?" data-tip="Weekly data is bumpy. Smoothing averages several weeks together so the big trend stands out."></button>
+    </label>
+    <select id="smoothSel">
+      <option value="1">Weekly (raw data)</option>
+      <option value="13">3-month average</option>
+      <option value="52">1-year average</option>
+    </select>
+  </div>
+
+  <div class="control-group" id="ctlExtras">
+    <span class="control-label">
+      Display
+      <button class="tip" type="button" aria-label="What is this?" data-tip="History markers pin important moments onto the chart. Table view shows the same numbers as plain text."></button>
+    </span>
+    <div class="checks">
+      <label class="check"><input type="checkbox" id="showEvents" checked><span>History markers</span></label>
+      <label class="check"><input type="checkbox" id="showTable"><span>Table view</span></label>
+    </div>
+  </div>
+
+  <div class="control-group control-group--end">
+    <button type="button" class="btn btn-ghost" id="resetBtn" data-tip="Put every control back to how it started.">Reset</button>
+    <button type="button" class="btn btn-ghost" id="csvBtn" data-tip="Save exactly what you are looking at right now as a spreadsheet file.">Download CSV</button>
+  </div>
+</section>
+
+<!-- ============================================================
+     TABS: the six chapters of the tool. Each one has a number,
+     a color, and a plain-English name, and that same number and
+     color follow you into the panel below when you open it.
+     ============================================================ -->
+<nav class="tabsbar" role="tablist" aria-label="Sections" id="tabsBar">
+  <button class="tabbtn tab-1" role="tab" id="tab-start" data-tab="start" aria-controls="panel-start" aria-selected="true" type="button">
+    <span class="tab-num">1</span><span class="tab-icon" aria-hidden="true">&#128075;</span><span class="tab-name">Start Here</span>
+  </button>
+  <button class="tabbtn tab-2" role="tab" id="tab-graph" data-tab="graph" aria-controls="panel-graph" aria-selected="false" type="button">
+    <span class="tab-num">2</span><span class="tab-icon" aria-hidden="true">&#128200;</span><span class="tab-name">Graph</span>
+  </button>
+  <button class="tabbtn tab-3" role="tab" id="tab-stats" data-tab="stats" aria-controls="panel-stats" aria-selected="false" type="button">
+    <span class="tab-num">3</span><span class="tab-icon" aria-hidden="true">&#128202;</span><span class="tab-name">Stats</span>
+  </button>
+  <button class="tabbtn tab-4" role="tab" id="tab-history" data-tab="history" aria-controls="panel-history" aria-selected="false" type="button">
+    <span class="tab-num">4</span><span class="tab-icon" aria-hidden="true">&#128337;</span><span class="tab-name">History</span>
+  </button>
+  <button class="tabbtn tab-5" role="tab" id="tab-calculator" data-tab="calculator" aria-controls="panel-calculator" aria-selected="false" type="button">
+    <span class="tab-num">5</span><span class="tab-icon" aria-hidden="true">&#129518;</span><span class="tab-name">Calculator</span>
+  </button>
+  <button class="tabbtn tab-6" role="tab" id="tab-glossary" data-tab="glossary" aria-controls="panel-glossary" aria-selected="false" type="button">
+    <span class="tab-num">6</span><span class="tab-icon" aria-hidden="true">&#128218;</span><span class="tab-name">Word Bank</span>
+  </button>
+</nav>
+
 <main class="page">
 
   <!-- ============================================================
-       INTRO: one short paragraph so a newcomer knows what they
-       are looking at before they touch any controls.
+       TAB 1 - START HERE
        ============================================================ -->
-  <section class="intro">
-    <p>
-      A <strong>mortgage rate</strong> is the yearly interest a bank charges to lend you money for a house.
-      Every week since April 1971, Freddie Mac has asked lenders what rate they are offering and written the
-      answer down. That is <strong id="introCount">&mdash;</strong> weeks of history in the chart below.
-      Change any control and watch every number on the page update together.
-    </p>
+  <section class="tabpanel" id="panel-start" role="tabpanel" aria-labelledby="tab-start">
+    <div class="panel-banner banner-1">
+      <span class="banner-num">1</span>
+      <div><h2>Start Here</h2><p>What this tool is, in about 20 seconds.</p></div>
+    </div>
+
+    <div class="card">
+      <p class="lede" id="introText"></p>
+      <div class="quickfacts">
+        <div class="qf"><div class="qf-num" id="qfWeeks">&ndash;</div><div class="qf-label">weeks of data</div></div>
+        <div class="qf"><div class="qf-num">3</div><div class="qf-label">kinds of home loans</div></div>
+        <div class="qf"><div class="qf-num" id="qfYears">&ndash;</div><div class="qf-label">years, 1971&ndash;today</div></div>
+      </div>
+      <button id="tourBtn2" class="btn btn-accent btn-big" type="button">&#10024; Take the 1-Minute Tour</button>
+    </div>
+
+    <div class="card">
+      <h3>How to use this page</h3>
+      <ol class="stepslist">
+        <li><strong>0 &middot; Controls</strong> at the top change everything below &mdash; pick a time range and which loans to compare.</li>
+        <li><strong>2 &middot; Graph</strong> draws those loans as a picture you can hover over.</li>
+        <li><strong>3 &middot; Stats</strong> and <strong>4 &middot; History</strong> explain what the picture means in words.</li>
+        <li><strong>5 &middot; Calculator</strong> turns a rate into a real monthly payment.</li>
+        <li>Stuck on a word? Look for a <span class="term-demo">yellow highlight</span> like this one, or open <strong>6 &middot; Word Bank</strong>.</li>
+      </ol>
+    </div>
   </section>
 
   <!-- ============================================================
-       CONTROLS: one single row of filters that scope EVERYTHING
-       below them - the chart, the stat tiles, the insights and
-       the table all read from these same settings.
+       TAB 2 - GRAPH
        ============================================================ -->
-  <section class="controls" id="controls" aria-label="Filters">
-
-    <div class="control-group" id="ctlRange">
-      <span class="control-label">
-        Time range
-        <button class="tip" type="button" aria-label="What is this?" data-tip="Pick how far back in time to look. &quot;All&quot; shows every week since 1971. Shorter ranges zoom in so recent changes are easier to see."></button>
-      </span>
-      <div class="chips" role="group" aria-label="Time range presets">
-        <button type="button" class="chip" data-years="1">1Y</button>
-        <button type="button" class="chip" data-years="5">5Y</button>
-        <button type="button" class="chip" data-years="10">10Y</button>
-        <button type="button" class="chip" data-years="20">20Y</button>
-        <button type="button" class="chip" data-years="all">All</button>
-      </div>
-      <div class="custom-range">
-        <label class="mini">From <input type="date" id="dateFrom"></label>
-        <label class="mini">To <input type="date" id="dateTo"></label>
-      </div>
+  <section class="tabpanel" id="panel-graph" role="tabpanel" aria-labelledby="tab-graph" hidden>
+    <div class="panel-banner banner-2">
+      <span class="banner-num">2</span>
+      <div><h2>Graph</h2><p>The whole dataset, drawn as one picture.</p></div>
     </div>
 
-    <div class="control-group" id="ctlSeries">
-      <span class="control-label">
-        Loan types
-        <button class="tip" type="button" aria-label="What is this?" data-tip="Each line is a different kind of home loan. Tick a box to add its line to the chart, untick to hide it. Comparing two lines shows which loan was cheaper at any moment in history."></button>
-      </span>
-      <div class="checks">
-        <label class="check">
-          <input type="checkbox" id="sr30" checked>
-          <span class="swatch swatch-1" aria-hidden="true"></span>
-          <span>30-year fixed</span>
+    <div class="card chart-card" id="chartCard">
+      <div class="card-head">
+        <div>
+          <h2 id="chartTitle">U.S. mortgage rates over time</h2>
+          <p class="card-sub" id="chartSub">Percent per year</p>
+        </div>
+        <div class="legend" id="legend" aria-label="Chart legend"></div>
+      </div>
+
+      <div class="chart-wrap" id="chartWrap">
+        <svg id="chart" role="img" aria-label="Line chart of mortgage rates over time"></svg>
+        <div class="chart-tooltip" id="chartTip" hidden></div>
+        <div class="chart-empty" id="chartEmpty" hidden>Nothing to draw. Try widening the time range or ticking a loan type in <strong>0 &middot; Controls</strong>.</div>
+      </div>
+
+      <p class="chart-help">
+        Move your mouse across the chart to read the exact rate for any week. Using a keyboard?
+        Press <kbd>Tab</kbd> to the chart, then <kbd>&larr;</kbd> and <kbd>&rarr;</kbd>.
+      </p>
+    </div>
+
+    <section class="card" id="tableCard" hidden>
+      <div class="card-head">
+        <div>
+          <h2>The numbers behind the chart</h2>
+          <p class="card-sub" id="tableSub"></p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="dataTable">
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <p class="card-foot" id="tableFoot"></p>
+    </section>
+  </section>
+
+  <!-- ============================================================
+       TAB 3 - STATS
+       ============================================================ -->
+  <section class="tabpanel" id="panel-stats" role="tabpanel" aria-labelledby="tab-stats" hidden>
+    <div class="panel-banner banner-3">
+      <span class="banner-num">3</span>
+      <div><h2>Stats</h2><p>The chart's numbers, and what they mean in plain words.</p></div>
+    </div>
+
+    <section class="tiles" id="tiles" aria-label="Summary statistics">
+      <div class="tile">
+        <div class="tile-label">Latest rate <button class="tip" type="button" aria-label="What is this?" data-tip="The most recent 30-year fixed rate inside your selected range."></button></div>
+        <div class="tile-value" id="tLatest">&ndash;</div>
+        <div class="tile-note" id="tLatestNote"></div>
+      </div>
+      <div class="tile">
+        <div class="tile-label">Change over range <button class="tip" type="button" aria-label="What is this?" data-tip="How far the 30-year rate moved from the first week of your range to the last."></button></div>
+        <div class="tile-value" id="tChange">&ndash;</div>
+        <div class="tile-note" id="tChangeNote"></div>
+      </div>
+      <div class="tile">
+        <div class="tile-label">Highest <button class="tip" type="button" aria-label="What is this?" data-tip="The most expensive week in your range for a 30-year loan."></button></div>
+        <div class="tile-value" id="tHigh">&ndash;</div>
+        <div class="tile-note" id="tHighNote"></div>
+      </div>
+      <div class="tile">
+        <div class="tile-label">Lowest <button class="tip" type="button" aria-label="What is this?" data-tip="The cheapest week in your range for a 30-year loan."></button></div>
+        <div class="tile-value" id="tLow">&ndash;</div>
+        <div class="tile-note" id="tLowNote"></div>
+      </div>
+      <div class="tile">
+        <div class="tile-label">Average <button class="tip" type="button" aria-label="What is this?" data-tip="Add up every weekly rate in the range and divide by the number of weeks."></button></div>
+        <div class="tile-value" id="tAvg">&ndash;</div>
+        <div class="tile-note" id="tAvgNote"></div>
+      </div>
+    </section>
+
+    <section class="card" id="insightCard">
+      <div class="card-head">
+        <div>
+          <h2>What this range is telling you</h2>
+          <p class="card-sub">These sentences are calculated from your current selection &mdash; change a control and they rewrite themselves.</p>
+        </div>
+      </div>
+      <ul class="insights" id="insights"></ul>
+    </section>
+  </section>
+
+  <!-- ============================================================
+       TAB 4 - HISTORY
+       ============================================================ -->
+  <section class="tabpanel" id="panel-history" role="tabpanel" aria-labelledby="tab-history" hidden>
+    <div class="panel-banner banner-4">
+      <span class="banner-num">4</span>
+      <div><h2>History</h2><p>Real moments, pinned to the dates they happened.</p></div>
+    </div>
+
+    <div class="card">
+      <p class="card-sub">This list follows your time range in <strong>0 &middot; Controls</strong> &mdash; widen it to see more of history.</p>
+      <div class="events" id="eventList"></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       TAB 5 - CALCULATOR
+       ============================================================ -->
+  <section class="tabpanel" id="panel-calculator" role="tabpanel" aria-labelledby="tab-calculator" hidden>
+    <div class="panel-banner banner-5">
+      <span class="banner-num">5</span>
+      <div><h2>Calculator</h2><p>Turn a percent into a real monthly bill.</p></div>
+    </div>
+
+    <div class="card" id="calcCard">
+      <div class="calc-controls">
+        <label class="calc-field">
+          <span class="calc-cap">Amount borrowed
+            <button class="tip" type="button" aria-label="What is this?" data-tip="The size of the loan in dollars: the house price minus whatever you pay up front as a down payment."></button>
+          </span>
+          <span class="calc-input">
+            <span class="prefix">$</span>
+            <input type="number" id="loanAmt" value="300000" min="10000" max="2000000" step="5000">
+          </span>
         </label>
-        <label class="check">
-          <input type="checkbox" id="sr15" checked>
-          <span class="swatch swatch-2" aria-hidden="true"></span>
-          <span>15-year fixed</span>
-        </label>
-        <label class="check">
-          <input type="checkbox" id="sarm">
-          <span class="swatch swatch-3" aria-hidden="true"></span>
-          <span>5/1 ARM</span>
+        <label class="calc-field calc-field--slider">
+          <span class="calc-cap">or drag</span>
+          <input type="range" id="loanSlider" min="50000" max="1000000" step="5000" value="300000">
         </label>
       </div>
+      <p class="calc-note" id="calcNote"></p>
+
+      <div class="calc-results" id="calcResults"></div>
+      <p class="calc-lesson" id="calcLesson"></p>
     </div>
 
-    <div class="control-group" id="ctlSmooth">
-      <label class="control-label" for="smoothSel">
-        Smoothing
-        <button class="tip" type="button" aria-label="What is this?" data-tip="Weekly data is bumpy. Smoothing averages several weeks together so the big trend stands out and the small wiggles fade away. Switch between the options to see the difference."></button>
-      </label>
-      <select id="smoothSel">
-        <option value="1">Weekly (raw data)</option>
-        <option value="13">3-month average</option>
-        <option value="52">1-year average</option>
-      </select>
-    </div>
-
-    <div class="control-group" id="ctlExtras">
-      <span class="control-label">
-        Display
-        <button class="tip" type="button" aria-label="What is this?" data-tip="History markers pin important moments onto the chart, like the 1981 peak or the 2020 pandemic. Table view shows the very same numbers as plain text."></button>
-      </span>
-      <div class="checks">
-        <label class="check"><input type="checkbox" id="showEvents" checked><span>History markers</span></label>
-        <label class="check"><input type="checkbox" id="showTable"><span>Table view</span></label>
+    <div class="card" id="amortCard">
+      <div class="card-head">
+        <div>
+          <h2 id="amortTitle"></h2>
+          <p class="card-sub" id="amortSub"></p>
+        </div>
+        <label class="mini amort-select-wrap">
+          Show schedule for
+          <select id="amortRateSelect"></select>
+        </label>
       </div>
-    </div>
-
-    <div class="control-group control-group--end">
-      <button type="button" class="btn btn-ghost" id="resetBtn" data-tip="Put every control back to how it started.">Reset</button>
-      <button type="button" class="btn btn-ghost" id="csvBtn" data-tip="Save exactly what you are looking at right now as a spreadsheet file you can open in Excel or Google Sheets.">Download CSV</button>
-    </div>
-  </section>
-
-  <!-- ============================================================
-       STAT TILES: five headline numbers for the chosen range.
-       ============================================================ -->
-  <section class="tiles" id="tiles" aria-label="Summary statistics">
-    <div class="tile">
-      <div class="tile-label">Latest rate <button class="tip" type="button" aria-label="What is this?" data-tip="The most recent 30-year fixed rate inside your selected range."></button></div>
-      <div class="tile-value" id="tLatest">&ndash;</div>
-      <div class="tile-note" id="tLatestNote"></div>
-    </div>
-    <div class="tile">
-      <div class="tile-label">Change over range <button class="tip" type="button" aria-label="What is this?" data-tip="How far the 30-year rate moved from the first week of your range to the last. Down is cheaper for a borrower; up is more expensive."></button></div>
-      <div class="tile-value" id="tChange">&ndash;</div>
-      <div class="tile-note" id="tChangeNote"></div>
-    </div>
-    <div class="tile">
-      <div class="tile-label">Highest <button class="tip" type="button" aria-label="What is this?" data-tip="The most expensive week in your range for a 30-year loan."></button></div>
-      <div class="tile-value" id="tHigh">&ndash;</div>
-      <div class="tile-note" id="tHighNote"></div>
-    </div>
-    <div class="tile">
-      <div class="tile-label">Lowest <button class="tip" type="button" aria-label="What is this?" data-tip="The cheapest week in your range for a 30-year loan."></button></div>
-      <div class="tile-value" id="tLow">&ndash;</div>
-      <div class="tile-note" id="tLowNote"></div>
-    </div>
-    <div class="tile">
-      <div class="tile-label">Average <button class="tip" type="button" aria-label="What is this?" data-tip="Add up every weekly rate in the range and divide by the number of weeks. A useful yardstick for judging whether today is high or low."></button></div>
-      <div class="tile-value" id="tAvg">&ndash;</div>
-      <div class="tile-note" id="tAvgNote"></div>
-    </div>
-  </section>
-
-  <!-- ============================================================
-       CHART CARD
-       ============================================================ -->
-  <section class="card chart-card" id="chartCard">
-    <div class="card-head">
-      <div>
-        <h2 id="chartTitle">U.S. mortgage rates over time</h2>
-        <p class="card-sub" id="chartSub">Percent per year</p>
+      <div class="table-wrap">
+        <table id="amortTable">
+          <thead>
+            <tr><th>Year</th><th>Balance at start</th><th>Paid to interest</th><th>Paid to principal</th><th>Balance at end</th></tr>
+          </thead>
+          <tbody id="amortBody"></tbody>
+        </table>
       </div>
-      <div class="legend" id="legend" aria-label="Chart legend"></div>
+      <p class="calc-lesson" id="amortLesson"></p>
     </div>
-
-    <!-- The chart itself is drawn by app.js into this empty SVG -->
-    <div class="chart-wrap" id="chartWrap">
-      <svg id="chart" role="img" aria-label="Line chart of mortgage rates over time"></svg>
-      <div class="chart-tooltip" id="chartTip" hidden></div>
-      <div class="chart-empty" id="chartEmpty" hidden>Nothing to draw. Try widening the time range or ticking a loan type.</div>
-    </div>
-
-    <p class="chart-help">
-      Move your mouse across the chart to read the exact rate for any week. Using a keyboard?
-      Press <kbd>Tab</kbd> to the chart, then <kbd>&larr;</kbd> and <kbd>&rarr;</kbd>.
-    </p>
   </section>
 
   <!-- ============================================================
-       TABLE VIEW: the same numbers as text. Hidden until asked for.
+       TAB 6 - WORD BANK / GLOSSARY INDEX
        ============================================================ -->
-  <section class="card" id="tableCard" hidden>
-    <div class="card-head">
-      <div>
-        <h2>The numbers behind the chart</h2>
-        <p class="card-sub" id="tableSub"></p>
-      </div>
-    </div>
-    <div class="table-wrap">
-      <table id="dataTable">
-        <thead id="tableHead"></thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-    </div>
-    <p class="card-foot" id="tableFoot"></p>
-  </section>
-
-  <!-- ============================================================
-       INSIGHTS: plain-English sentences generated from whatever
-       range is selected, plus the history notes inside that range.
-       ============================================================ -->
-  <section class="card" id="insightCard">
-    <div class="card-head">
-      <div>
-        <h2>What this range is telling you</h2>
-        <p class="card-sub">These sentences are calculated from your current selection &mdash; change a control and they rewrite themselves.</p>
-      </div>
-    </div>
-    <ul class="insights" id="insights"></ul>
-
-    <h3 class="sub-head">History inside this window</h3>
-    <div class="events" id="eventList"></div>
-  </section>
-
-  <!-- ============================================================
-       PAYMENT CALCULATOR: turns an abstract percentage into
-       dollars, which is the whole reason rates matter.
-       ============================================================ -->
-  <section class="card" id="calcCard">
-    <div class="card-head">
-      <div>
-        <h2>Why a percent matters</h2>
-        <p class="card-sub">A rate is just a number until you see it as a monthly bill. Same house, same loan &mdash; only the rate changes.</p>
-      </div>
+  <section class="tabpanel" id="panel-glossary" role="tabpanel" aria-labelledby="tab-glossary" hidden>
+    <div class="panel-banner banner-6">
+      <span class="banner-num">6</span>
+      <div><h2>Word Bank</h2><p>Every term used on this page, from A to Z.</p></div>
     </div>
 
-    <div class="calc-controls">
-      <label class="calc-field">
-        <span class="calc-cap">Amount borrowed
-          <button class="tip" type="button" aria-label="What is this?" data-tip="The size of the loan in dollars: the house price minus whatever you pay up front as a down payment."></button>
-        </span>
-        <span class="calc-input">
-          <span class="prefix">$</span>
-          <input type="number" id="loanAmt" value="300000" min="10000" max="2000000" step="5000">
-        </span>
-      </label>
-      <label class="calc-field calc-field--slider">
-        <span class="calc-cap">or drag</span>
-        <input type="range" id="loanSlider" min="50000" max="1000000" step="5000" value="300000">
-      </label>
-    </div>
-    <p class="calc-note">Every payment below is for a <strong>30-year</strong> loan and covers only principal and interest &mdash; not property taxes or insurance.</p>
-
-    <div class="calc-results" id="calcResults"></div>
-    <p class="calc-lesson" id="calcLesson"></p>
-  </section>
-
-  <!-- ============================================================
-       GLOSSARY
-       ============================================================ -->
-  <section class="card" id="learnCard">
-    <div class="card-head"><div>
-      <h2>Words you will meet on this page</h2>
-      <p class="card-sub">Click any term to open its explanation.</p>
-    </div></div>
-    <div class="glossary">
-      <details><summary>Mortgage rate</summary><p>The yearly interest percentage a lender charges on a home loan. At 7%, a $300,000 loan costs roughly $21,000 in interest during its first year alone. Lower is cheaper for the borrower.</p></details>
-      <details><summary>Fixed rate</summary><p>The rate is locked for the whole life of the loan. A 30-year fixed at 6% is still 6% in year 29. That predictability is why it is the most popular home loan in America.</p></details>
-      <details><summary>30-year vs 15-year</summary><p>Two lengths of the same idea. The 15-year is paid off in half the time, which means a <em>higher</em> monthly payment but a <em>lower</em> rate and far less total interest. Lenders charge less because they get their money back sooner and carry less risk.</p></details>
-      <details><summary>5/1 ARM</summary><p>An <strong>A</strong>djustable-<strong>R</strong>ate <strong>M</strong>ortgage. The rate is fixed for the first 5 years, then resets once a year after that. It usually starts cheaper than a fixed loan, but the borrower carries the risk that rates rise later. Freddie Mac stopped publishing this series in November 2022, which is why its line simply stops.</p></details>
-      <details><summary>Basis point</summary><p>One hundredth of a percent. A move from 6.50% to 6.75% is &ldquo;25 basis points&rdquo;. Professionals use the term because saying &ldquo;a quarter of a percentage point&rdquo; all day is clumsy.</p></details>
-      <details><summary>Moving average</summary><p>Instead of plotting one week on its own, you plot the average of the last several weeks. Small random bumps cancel out and the real direction shows through. That is exactly what the Smoothing control does.</p></details>
-      <details><summary>PMMS (the survey)</summary><p>The Primary Mortgage Market Survey. Freddie Mac asks lenders across the country what rate they are offering a well-qualified borrower, then averages the answers. It is a national average, so a real quote you receive will differ.</p></details>
-      <details><summary>Outlier</summary><p>A data point sitting far away from all the others. The 18.63% week in October 1981 is the famous outlier here &mdash; and unlike most outliers, it is completely real.</p></details>
-      <details><summary>Correlation is not causation</summary><p>Two lines moving together does not prove one caused the other. Mortgage rates track the wider economy, so many things rise and fall alongside them without being the reason.</p></details>
+    <div class="card">
+      <p class="card-sub">Jump to a letter, or just scroll. Every highlighted word anywhere on this site opens the same definition.</p>
+      <div class="glossary-jump" id="glossaryJump"></div>
+      <div class="glossary" id="glossaryList"></div>
     </div>
   </section>
 
@@ -289,7 +372,7 @@
   </footer>
 </main>
 
-<!-- Floating tooltip bubble, reused by every "?" button on the page -->
+<!-- Floating tooltip bubble, shared by every "?" button and every highlighted word -->
 <div class="tipbubble" id="tipbubble" role="tooltip" hidden></div>
 
 <!-- Guided-tour overlay -->
